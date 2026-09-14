@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}DeleGate - Home Screen{% endblock %}
+
+{% block content %}
+<header>
+    <h1>DeleGate</h1>
+    <div style="display: flex; align-items: center; gap: 1.25rem;">
+        <span style="color: var(--text-muted); font-size: 0.95rem;">Welcome, <strong style="color: var(--text-main);">{{ user.username }}</strong></span>
+        <a href="{% url 'logout' %}" class="logout-btn">Log Out</a>
+    </div>
+</header>
+<main style="padding: 4rem 2rem; text-align: center;">
+    <div style="background: var(--surface); border: 1px dashed var(--brand-cyan); border-radius: 8px; padding: 3rem; max-width: 600px; margin: 0 auto;">
+        <h2 style="margin-top: 0; color: var(--cyan-glow);">HOME SCREEN</h2>
+        <p style="color: var(--text-muted); margin: 0;">Stage-Gate Sprint Board & Task Governance Dashboard</p>
+    </div>
+</main>
+{% endblock %}

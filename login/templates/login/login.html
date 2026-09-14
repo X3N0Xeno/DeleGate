@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}DeleGate - Login{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card">
+        <h2>DeleGate</h2>
+        <p class="subtitle">Stage-Gate Project Management</p>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% endif %}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Log In</button>
+        </form>
+        <div class="footer-link">
+            No account yet? <a href="{% url 'register' %}">Register</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

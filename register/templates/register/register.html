@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}DeleGate - Register{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card">
+        <h2>DeleGate</h2>
+        <p class="subtitle">Create an account to join sprints</p>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Sign Up</button>
+        </form>
+        <div class="footer-link">
+            Already have an account? <a href="{% url 'login' %}">Log In</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

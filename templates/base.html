@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}DeleGate{% endblock %}</title>
+    <style>
+        :root {
+            --bg-dark: #07151c;
+            --surface: #0f3140;
+            --surface-header: #0b2530;
+            --border-color: #1a4a5e;
+            --brand-cyan: #25bac6;
+            --cyan-glow: #3bcddb;
+            --action-orange: #ff6b2c;
+            --action-orange-hover: #e05517;
+            --warning-amber: #f5a623;
+            --text-main: #f0fdfa;
+            --text-muted: #7ba1b0;
+        }
+
+        body { 
+            font-family: system-ui, sans-serif; 
+            background: var(--bg-dark); 
+            color: var(--text-main); 
+            margin: 0; 
+        }
+
+        /* Shared Card / Auth Styling */
+        .auth-container {
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+        }
+        .card { 
+            background: var(--surface); 
+            padding: 2.25rem; 
+            border-radius: 8px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            width: 100%; 
+            max-width: 380px; 
+            border: 1px solid var(--border-color); 
+        }
+        .card h2 { 
+            margin-top: 0; 
+            color: var(--cyan-glow); 
+            text-align: center; 
+            font-size: 1.8rem;
+            letter-spacing: 0.5px;
+        }
+        .card p.subtitle { 
+            text-align: center; 
+            font-size: 0.85rem; 
+            color: var(--text-muted); 
+            margin-bottom: 1.5rem; 
+        }
+        form p { 
+            margin-bottom: 1rem; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        label { 
+            font-size: 0.85rem; 
+            margin-bottom: 0.35rem; 
+            color: var(--text-main);
+        }
+        input { 
+            padding: 0.6rem; 
+            border-radius: 5px; 
+            border: 1px solid var(--border-color); 
+            background: #050e13; 
+            color: var(--text-main); 
+            outline: none;
+        }
+        input:focus {
+            border-color: var(--brand-cyan);
+            box-shadow: 0 0 0 2px rgba(37, 186, 198, 0.25);
+        }
+        .helptext, ul { 
+            font-size: 0.75rem; 
+            color: var(--text-muted); 
+            margin-top: 0.35rem; 
+            line-height: 1.3;
+        }
+        button[type="submit"] { 
+            width: 100%; 
+            padding: 0.75rem; 
+            background: var(--action-orange); 
+            color: #fff; 
+            border: none; 
+            border-radius: 5px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            margin-top: 1rem; 
+            transition: background 0.2s ease;
+        }
+        button[type="submit"]:hover { 
+            background: var(--action-orange-hover); 
+        }
+        .footer-link { 
+            text-align: center; 
+            margin-top: 1.25rem; 
+            font-size: 0.85rem; 
+            color: var(--text-muted); 
+        }
+        .footer-link a { 
+            color: var(--cyan-glow); 
+            text-decoration: none; 
+            font-weight: 600;
+        }
+        .alert { 
+            background: #ef4444; 
+            color: white; 
+            padding: 0.6rem; 
+            border-radius: 4px; 
+            margin-bottom: 1rem; 
+            font-size: 0.85rem; 
+        }
+        .alert-success { background: #059669; }
+
+        /* Shared Navbar */
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 1rem 2.5rem; 
+            background: var(--surface-header); 
+            border-bottom: 1px solid var(--border-color); 
+        }
+        header h1 { 
+            margin: 0; 
+            font-size: 1.5rem; 
+            color: var(--cyan-glow); 
+        }
+        .logout-btn { 
+            background: transparent; 
+            color: var(--action-orange); 
+            border: 1px solid var(--action-orange); 
+            padding: 0.4rem 0.9rem; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            text-decoration: none; 
+            font-size: 0.85rem; 
+            font-weight: bold; 
+        }
+        .logout-btn:hover { 
+            background: var(--action-orange); 
+            color: #fff; 
+        }
+    </style>
+</head>
+<body>
+    {% block content %}{% endblock %}
+</body>
+</html>
