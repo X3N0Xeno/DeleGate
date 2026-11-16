@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'login',
     'register',
     'home',
+    'user_profile',
+    'user_settings',
 ]
 
 MIDDLEWARE = [

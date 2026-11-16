@@ -1,19 +1,43 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
-{% block title %}DeleGate - Home Screen{% endblock %}
+{% block title %}Dashboard | DeleGate{% endblock %}
 
 {% block content %}
-<header>
-    <h1>DeleGate</h1>
-    <div style="display: flex; align-items: center; gap: 1.25rem;">
-        <span style="color: var(--text-muted); font-size: 0.95rem;">Welcome, <strong style="color: var(--text-main);">{{ user.username }}</strong></span>
-        <a href="{% url 'logout' %}" class="logout-btn">Log Out</a>
-    </div>
-</header>
-<main style="padding: 4rem 2rem; text-align: center;">
-    <div style="background: var(--surface); border: 1px dashed var(--brand-cyan); border-radius: 8px; padding: 3rem; max-width: 600px; margin: 0 auto;">
-        <h2 style="margin-top: 0; color: var(--cyan-glow);">HOME SCREEN</h2>
-        <p style="color: var(--text-muted); margin: 0;">Stage-Gate Sprint Board & Task Governance Dashboard</p>
-    </div>
-</main>
+<div class="card">
+  <h2>Quick Delegate</h2>
+  <form method="POST" style="margin-top: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+    {% csrf_token %}
+    <input type="text" name="title" placeholder="What needs to get done?" required 
+           style="flex: 2; min-width: 200px; padding: 0.5rem; background: var(--bg-dark); color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+    
+    <select name="priority" style="padding: 0.5rem; background: var(--bg-dark); color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+      <option value="LOW">Low</option>
+      <option value="MED" selected>Medium</option>
+      <option value="HIGH">High</option>
+      <option value="CRIT">Critical</option>
+    </select>
+
+    <input type="date" name="due_date" style="padding: 0.5rem; background: var(--bg-dark); color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+    <button type="submit" class="btn-orange">Assign Task</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Your Delegated Tasks</h2>
+  <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+    {% for task in tasks %}
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-dark); border-radius: 4px; border: 1px solid var(--border-color);">
+        <div>
+          <strong>{{ task.title }}</strong>
+          <span style="font-size: 0.8rem; margin-left: 0.5rem; color: var(--cyan-glow);">[{{ task.priority }}]</span>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">
+          Status: {{ task.get_status_display }}
+        </div>
+      </div>
+    {% empty %}
+      <p style="color: var(--text-muted);">No tasks delegated yet.</p>
+    {% endfor %}
+  </div>
+</div>
 {% endblock %}
