@@ -314,6 +314,64 @@
             max-width: 420px;
         }
 
+        /* ── Progress & Stepper Tokens ── */
+        .progress-track {
+            background: var(--surface-2);
+            border-radius: var(--radius-pill);
+            height: 8px;
+            overflow: hidden;
+            width: 100%;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--brand), var(--accent));
+            border-radius: var(--radius-pill);
+            transition: width 250ms ease;
+        }
+
+        .effort-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.18rem 0.55rem;
+            border-radius: var(--radius-pill);
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: var(--surface-2);
+            color: var(--brand);
+            border: 1px solid var(--border);
+        }
+
+        .stepper-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 1.25rem 0 2rem;
+        }
+
+        .gate-card {
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            transition: all var(--transition);
+        }
+        .gate-card.passed {
+            border-color: var(--accent);
+            background: #F4FAF6;
+        }
+        .gate-card.unlocked {
+            border: 2px solid var(--brand);
+            box-shadow: 0 6px 20px rgba(45, 106, 79, 0.12);
+        }
+        .gate-card.locked {
+            border: 1px dashed #CBD5CE;
+            background: #F8FAF8;
+            opacity: 0.85;
+        }
+
         /* ── Utilities ── */
         .text-muted { color: var(--text-secondary); }
         .text-sm { font-size: 0.875rem; }
@@ -348,9 +406,13 @@
         </a>
 
         <ul class="nav-tabs">
-            <li><a href="{% url 'home' %}" {% if request.resolver_match.url_name == 'home' %}class="active"{% endif %}>
+            <li><a href="{% url 'claimant_dashboard' %}" {% if request.resolver_match.url_name == 'claimant_dashboard' %}class="active"{% endif %}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Claimant Pool (Mine!)
+            </a></li>
+            <li><a href="{% url 'assigner_dashboard' %}" {% if request.resolver_match.url_name == 'assigner_dashboard' %}class="active"{% endif %}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                Dashboard
+                Assigner Gate Hub
             </a></li>
             <li><a href="{% url 'user_profile:profile' %}" {% if 'profile' in request.resolver_match.url_name %}class="active"{% endif %}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
