@@ -52,7 +52,7 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         Sequential Stage-Gate Governance Pipeline
       </h2>
-      <span class="text-xs text-muted">Tasks in locked gates cannot be claimed until prior gate completes.</span>
+      <span class="text-xs text-muted">Gates unlock sequentially; 100% of tasks must be completed to pass a gate.</span>
     </div>
 
     <div class="stepper-grid">
@@ -106,7 +106,7 @@
   </div>
 
   <!-- KPI Strip -->
-  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
     <div class="card" style="padding: 1.25rem; text-align: center; border-top: 3px solid var(--brand);">
       <div style="font-size: 1.8rem; font-weight: 700; color: var(--brand); line-height: 1;">{{ kpi.open_to_mine }}</div>
       <div class="text-xs text-muted" style="margin-top: 0.35rem; font-weight: 600; text-transform: uppercase;">Open to Mine (Unlocked)</div>
@@ -124,6 +124,16 @@
       <div class="text-xs text-muted" style="margin-top: 0.35rem; font-weight: 600; text-transform: uppercase;">Completed by Me</div>
     </div>
   </div>
+
+  <!-- Single-Task Mining Limit Banner -->
+  {% if user_has_active_task %}
+  <div class="alert alert-warning" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div>
+      <strong>Single-Task Mining Lock Active:</strong> You currently have <strong>{{ user_active_count }} active task{{ user_active_count|pluralize }}</strong>. To prevent cognitive overload, you can only mine additional tasks marked <span class="pill pill-med" style="background: #E0F2FE; color: #0369A1; font-weight: 700; font-size: 0.68rem; padding: 0.15rem 0.45rem;">Multi-Claim</span> until your active work is reviewed and completed.
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Main Dual Workspace: Acquisition Pool vs Mined Queue -->
   <div style="display: grid; grid-template-columns: 1.05fr 1fr; gap: 1.75rem; align-items: start;">
@@ -147,7 +157,18 @@
               <span class="pill pill-low" style="font-size: 0.7rem;">Gate {{ task.gate.order }}</span>
               <span class="pill pill-{{ task.priority|lower }}">{{ task.get_priority_display }}</span>
               <span class="effort-pill">{{ task.effort_points }} pts</span>
+
+              {% if task.is_multiclaimable %}
+                <span class="pill pill-med" style="background: #E0F2FE; color: #0369A1; font-weight: 700; font-size: 0.68rem;">Multi-Claim</span>
+              {% endif %}
+
+              {% if task.dissolved_count > 0 %}
+                <span class="pill" style="background: rgba(200, 75, 49, 0.1); color: var(--critical); font-weight: 700; font-size: 0.68rem;">
+                  ↺ Dissolved (x{{ task.dissolved_count }}) • Progress Preserved
+                </span>
+              {% endif %}
             </div>
+
             {% if task.due_date %}
             <span class="text-xs {% if task.due_date < today %}text-critical{% else %}text-muted{% endif %}" style="display: flex; align-items: center; gap: 0.25rem;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -161,23 +182,40 @@
           </h3>
 
           {% if task.description %}
-          <p class="text-sm text-muted" style="margin-bottom: 1rem; line-height: 1.5;">
+          <p class="text-sm text-muted" style="margin-bottom: 0.75rem; line-height: 1.5;">
             {{ task.description }}
           </p>
           {% endif %}
 
-          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.6rem; border-top: 1px solid var(--border);">
+          {% if task.progress_notes %}
+          <div style="background: var(--surface-2); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem; border: 1px solid var(--border); font-size: 0.78rem;">
+            <span style="font-weight: 700; color: var(--brand);">Prior Work / Notes:</span>
+            <div style="color: var(--text-primary); margin-top: 0.2rem;">{{ task.progress_notes }}</div>
+          </div>
+          {% endif %}
+
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.6rem; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 0.5rem;">
             <span class="text-xs text-muted">
               Dispatched by @{{ task.created_by.username|default:"Admin" }}
             </span>
 
-            <form method="POST" action="{% url 'mine_task' task.pk %}">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-primary" style="padding: 0.45rem 1.1rem; font-size: 0.85rem; border-radius: var(--radius-pill); box-shadow: var(--shadow);">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                Mine! (Claim Task)
-              </button>
-            </form>
+            {% if user_has_active_task and not task.is_multiclaimable %}
+              <div style="text-align: right;">
+                <button type="button" class="btn btn-secondary" disabled style="padding: 0.45rem 0.9rem; font-size: 0.8rem; border-radius: var(--radius-pill); opacity: 0.6; cursor: not-allowed;" title="Finish or submit your active task first (only Multi-Claim tasks can be stacked)">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Locked (Active Task)
+                </button>
+                <div class="text-xs text-muted" style="font-size: 0.7rem; margin-top: 0.2rem;">Finish or submit active task first</div>
+              </div>
+            {% else %}
+              <form method="POST" action="{% url 'mine_task' task.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary" style="padding: 0.45rem 1.1rem; font-size: 0.85rem; border-radius: var(--radius-pill); box-shadow: var(--shadow);">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Mine! (Claim Task)
+                </button>
+              </form>
+            {% endif %}
           </div>
         </div>
         {% empty %}
@@ -199,7 +237,7 @@
           </h3>
         </div>
         <p class="text-xs text-muted" style="margin-bottom: 1rem;">
-          These tasks are sequenced behind upstream milestones. They will unlock automatically once prior gates are passed.
+          These tasks are sequenced behind upstream milestones. They will unlock automatically once prior gates achieve 100% completion and pass.
         </p>
 
         <div style="display: flex; flex-direction: column; gap: 0.65rem;">
@@ -212,6 +250,9 @@
                 </span>
                 <span class="pill pill-{{ task.priority|lower }}">{{ task.get_priority_display }}</span>
                 <span class="effort-pill">{{ task.effort_points }} pts</span>
+                {% if task.is_multiclaimable %}
+                  <span class="pill pill-med" style="background: #E0F2FE; color: #0369A1; font-weight: 700; font-size: 0.68rem;">Multi-Claim</span>
+                {% endif %}
               </div>
               <span class="text-xs text-muted" style="display: inline-flex; align-items: center; gap: 0.2rem;">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -277,14 +318,16 @@
               {% elif task.status == 'IN_PROGRESS' %}
                 <span class="pill pill-inprogress">IN PROGRESS</span>
               {% elif task.status == 'IN_REVIEW' %}
-                <span class="pill pill-high">IN REVIEW</span>
+                <span class="pill pill-high" style="font-weight: 700;">⏳ Awaiting Manager Review</span>
               {% elif task.status == 'COMPLETED' %}
                 <span class="pill pill-completed">COMPLETED</span>
               {% endif %}
             </div>
 
             {% if task.due_date %}
-            <span class="text-xs text-muted">Due {{ task.due_date|date:"M j" }}</span>
+            <span class="text-xs {% if task.due_date < today and task.status != 'COMPLETED' %}text-critical{% else %}text-muted{% endif %}">
+              Due {{ task.due_date|date:"M j" }}
+            </span>
             {% endif %}
           </div>
 
@@ -298,7 +341,29 @@
           </p>
           {% endif %}
 
-          <!-- Workflow Status Transition Buttons -->
+          <!-- Progress Notes Field -->
+          <div style="background: var(--surface-2); padding: 0.65rem; border-radius: var(--radius-sm); margin-bottom: 0.75rem; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+              <span class="text-xs font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Worker Progress Notes</span>
+              <span class="text-xs text-muted">Preserved across reviews</span>
+            </div>
+            
+            {% if task.status != 'COMPLETED' %}
+            <form method="POST" action="{% url 'task_update_notes' task.pk %}">
+              {% csrf_token %}
+              <div style="display: flex; gap: 0.4rem;">
+                <input type="text" name="progress_notes" value="{{ task.progress_notes }}" placeholder="Add progress notes, branch links, test outcomes…" style="font-size: 0.8rem; padding: 0.35rem 0.65rem;">
+                <button type="submit" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.65rem; white-space: nowrap;">
+                  Save Notes
+                </button>
+              </div>
+            </form>
+            {% else %}
+            <div class="text-xs" style="color: var(--text-primary);">{{ task.progress_notes|default:"No progress notes recorded." }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Workflow Status Transition Buttons (MANAGER-ONLY COMPLETION ENFORCED) -->
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.65rem; border-top: 1px solid var(--border);">
             <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
               {% if task.status == 'CLAIMED' %}
@@ -313,28 +378,20 @@
               <form method="POST" action="{% url 'task_status_action' task.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="review">
-                <button type="submit" class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.78rem; background: #E8F4FD; color: #1A6FA4; border-color: #BEE3F8;">
+                <button type="submit" class="btn btn-secondary" style="padding: 0.35rem 0.85rem; font-size: 0.78rem; background: #E8F4FD; color: #1A6FA4; border-color: #BEE3F8; font-weight: 700;">
                   📤 Submit for Review
                 </button>
               </form>
-              <form method="POST" action="{% url 'task_status_action' task.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="complete">
-                <button type="submit" class="btn btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.78rem;">
-                  ✓ Mark Complete
-                </button>
-              </form>
               {% elif task.status == 'IN_REVIEW' %}
-              <form method="POST" action="{% url 'task_status_action' task.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="complete">
-                <button type="submit" class="btn btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.78rem;">
-                  ✓ Mark Complete
-                </button>
-              </form>
+              <span class="text-xs" style="color: var(--amber); font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Submitted for Manager Review (Approval Pending)
+              </span>
+              {% elif task.status == 'COMPLETED' %}
+              <span class="pill pill-completed">✓ Manager Approved</span>
               {% endif %}
 
-              {% if task.status != 'COMPLETED' %}
+              {% if task.status != 'COMPLETED' and task.status != 'IN_REVIEW' %}
               <form method="POST" action="{% url 'task_status_action' task.pk %}" style="display: inline;">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="release">
@@ -347,9 +404,11 @@
 
             <!-- Blocker Toggle & Comment Toggle -->
             <div style="display: flex; align-items: center; gap: 0.5rem;">
+              {% if task.status != 'COMPLETED' %}
               <button type="button" onclick="toggleBlockerForm('blocker-{{ task.pk }}')" class="btn-logout" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;">
                 {% if task.is_blocked %}Clear Blocker{% else %}⚠️ Flag Blocker{% endif %}
               </button>
+              {% endif %}
 
               <button type="button" onclick="toggleComments('comments-{{ task.pk }}')" class="btn-logout" style="font-size: 0.72rem; padding: 0.2rem 0.55rem; color: var(--text-secondary); border-color: var(--border);">
                 💬 {{ task.comments.count }}

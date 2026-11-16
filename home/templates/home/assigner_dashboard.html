@@ -94,14 +94,14 @@
   </div>
 
   {% if project %}
-  <!-- Stage-Gate Pipeline with Assigner Pass / Unlock Controls -->
+  <!-- Stage-Gate Pipeline with STRICT Stage-Gate Locking Enforcement -->
   <div style="margin-bottom: 1.75rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
       <h2 style="font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        Stage-Gate Milestone Controls & Unlocking
+        Strict Stage-Gate Milestone Controls
       </h2>
-      <span class="text-xs text-muted">Pass an active gate to automatically unlock downstream tasks for claimants.</span>
+      <span class="text-xs text-muted">Gates unlock sequentially. 100% of tasks must be COMPLETED before a gate can be passed.</span>
     </div>
 
     <div class="stepper-grid">
@@ -149,24 +149,32 @@
             <div class="progress-fill" style="width: {{ gate.progress_percent }}%; {% if not gate.is_unlocked %}background: #CBD5E1;{% endif %}"></div>
           </div>
 
-          <!-- Assigner Sign-off Pass Button -->
+          <!-- Assigner Sign-off Pass Button with Strict 100% Completion Guard -->
           {% if gate.is_unlocked and not gate.is_passed %}
-          <form method="POST" action="{% url 'gate_pass' gate.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary btn-full" style="padding: 0.45rem 0.8rem; font-size: 0.8rem; {% if not gate.ready_to_pass %}background: #3B7A5C;{% endif %}"
-                    onclick="return confirm('Approve Gate {{ gate.order }}? This will mark it cleared and immediately unlock the next gate for mining.')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              Approve & Pass Gate → Unlock Next
-            </button>
-          </form>
+            {% if gate.ready_to_pass %}
+              <form method="POST" action="{% url 'gate_pass' gate.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-full" style="padding: 0.45rem 0.8rem; font-size: 0.8rem;"
+                        onclick="return confirm('Approve Gate {{ gate.order }}? 100% of tasks are completed. This will mark it cleared and immediately unlock Gate {{ gate.order|add:1 }} for mining.')">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  Approve & Pass Gate → Unlock Next
+                </button>
+              </form>
+            {% else %}
+              <button type="button" class="btn btn-secondary btn-full" disabled
+                      style="padding: 0.45rem 0.8rem; font-size: 0.75rem; opacity: 0.65; cursor: not-allowed; background: var(--surface-2); border-color: var(--border);"
+                      title="All tasks in this gate must be completed before it can be passed">
+                🔒 Locked: Complete all tasks in this gate first ({{ gate.completed_tasks }}/{{ gate.total_tasks }})
+              </button>
+            {% endif %}
           {% elif gate.is_passed %}
-          <div class="text-center text-xs" style="color: var(--brand); font-weight: 700; padding: 0.35rem;">
-            ✓ Milestone Cleared & Verified
-          </div>
+            <div class="text-center text-xs" style="color: var(--brand); font-weight: 700; padding: 0.35rem;">
+              ✓ Milestone Cleared & Verified
+            </div>
           {% else %}
-          <div class="text-center text-xs text-muted" style="padding: 0.35rem;">
-            🔒 Locked behind Gate {{ gate.order|add:"-1" }} sign-off
-          </div>
+            <div class="text-center text-xs text-muted" style="padding: 0.35rem;">
+              🔒 Locked behind Gate {{ gate.order|add:"-1" }} completion
+            </div>
           {% endif %}
         </div>
       </div>
@@ -227,6 +235,15 @@
         <div class="form-group" style="margin-bottom: 0.9rem;">
           <label for="task-due">Due Date</label>
           <input type="date" name="due_date" id="task-due">
+        </div>
+
+        <!-- Multi-Claim Toggle -->
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.9rem; padding: 0.6rem 0.8rem; background: var(--surface-2); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <input type="checkbox" name="is_multiclaimable" id="is_multiclaimable" style="width: 16px; height: 16px; accent-color: var(--brand);">
+          <label for="is_multiclaimable" style="margin: 0; text-transform: none; font-weight: 600; font-size: 0.82rem; cursor: pointer;">
+            Allow Multi-Claim (Stackable)
+          </label>
+          <span class="text-xs text-muted" style="margin-left: auto;">Can be mined alongside active work</span>
         </div>
 
         <div class="form-group" style="margin-bottom: 1.25rem;">
@@ -291,6 +308,16 @@
               <span class="pill pill-{{ task.priority|lower }}">{{ task.get_priority_display }}</span>
               <span class="effort-pill">{{ task.effort_points }} pts</span>
 
+              {% if task.is_multiclaimable %}
+                <span class="pill pill-med" style="background: #E0F2FE; color: #0369A1; font-weight: 700; font-size: 0.68rem;">Multi-Claim</span>
+              {% endif %}
+
+              {% if task.dissolved_count > 0 %}
+                <span class="pill" style="background: rgba(200, 75, 49, 0.1); color: var(--critical); font-weight: 700; font-size: 0.68rem;">
+                  ↺ Dissolved (x{{ task.dissolved_count }})
+                </span>
+              {% endif %}
+
               {% if task.status == 'OPEN' %}
                 <span class="pill" style="background: var(--surface-2); color: var(--text-secondary);">OPEN IN POOL</span>
               {% elif task.status == 'CLAIMED' %}
@@ -298,14 +325,16 @@
               {% elif task.status == 'IN_PROGRESS' %}
                 <span class="pill pill-inprogress">IN PROGRESS</span>
               {% elif task.status == 'IN_REVIEW' %}
-                <span class="pill pill-high">IN REVIEW</span>
+                <span class="pill pill-high" style="font-weight: 700;">⏳ IN REVIEW</span>
               {% elif task.status == 'COMPLETED' %}
                 <span class="pill pill-completed">COMPLETED</span>
               {% endif %}
             </div>
 
             {% if task.due_date %}
-            <span class="text-xs text-muted">Due {{ task.due_date|date:"M j" }}</span>
+            <span class="text-xs {% if task.due_date < today and task.status != 'COMPLETED' %}text-critical{% else %}text-muted{% endif %}">
+              Due {{ task.due_date|date:"M j" }}
+            </span>
             {% endif %}
           </div>
 
@@ -314,9 +343,16 @@
           </h3>
 
           {% if task.description %}
-          <p class="text-xs text-muted" style="margin-bottom: 0.75rem; line-height: 1.5;">
+          <p class="text-xs text-muted" style="margin-bottom: 0.5rem; line-height: 1.5;">
             {{ task.description }}
           </p>
+          {% endif %}
+
+          {% if task.progress_notes %}
+          <div style="background: var(--surface-2); padding: 0.45rem 0.65rem; border-radius: var(--radius-sm); margin-bottom: 0.65rem; border: 1px solid var(--border); font-size: 0.76rem;">
+            <span style="font-weight: 700; color: var(--brand);">Worker Progress Notes:</span>
+            <div style="color: var(--text-primary); margin-top: 0.15rem;">{{ task.progress_notes }}</div>
+          </div>
           {% endif %}
 
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.65rem; border-top: 1px solid var(--border);">
@@ -335,16 +371,22 @@
               {% endif %}
             </div>
 
-            <!-- Controls: Approve Review, Comments, Delete -->
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <!-- Controls: Manager Review (Approve or Return), Comments, Delete -->
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
               {% if task.status == 'IN_REVIEW' %}
-              <form method="POST" action="{% url 'task_status_action' task.pk %}">
+              <!-- 1. Approve & Mark Done -->
+              <form method="POST" action="{% url 'task_manager_review' task.pk %}" style="display: inline;">
                 {% csrf_token %}
-                <input type="hidden" name="action" value="complete">
+                <input type="hidden" name="review_action" value="approve">
                 <button type="submit" class="btn btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">
-                  ✓ Approve & Complete
+                  ✓ Approve & Mark Done
                 </button>
               </form>
+
+              <!-- 2. Return with Feedback Drawer Toggle -->
+              <button type="button" onclick="toggleDrawer('review-return-{{ task.pk }}')" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: #FFF5F5; color: var(--critical); border-color: #FED7D7; font-weight: 700;">
+                ↺ Return / Dissolve
+              </button>
               {% endif %}
 
               <button type="button" onclick="toggleComments('assigner-comments-{{ task.pk }}')" class="btn-logout" style="font-size: 0.72rem; padding: 0.2rem 0.55rem; color: var(--text-secondary); border-color: var(--border);">
@@ -359,6 +401,35 @@
               </form>
             </div>
           </div>
+
+          <!-- Manager Return / Dissolve Drawer -->
+          {% if task.status == 'IN_REVIEW' %}
+          <div id="review-return-{{ task.pk }}" class="hidden" style="margin-top: 0.75rem; padding: 0.85rem; background: #FFFBFB; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+            <div class="text-xs" style="margin-bottom: 0.5rem;">
+              <strong>Return Policy & State Determination:</strong>
+              {% if task.due_date and task.due_date < today %}
+                <div style="color: var(--critical); font-weight: 600; margin-top: 0.2rem;">
+                  ⚠️ Task is <strong>OVERDUE</strong> (due {{ task.due_date }}). Returning will dissolve task back to the open pool for another claimant. All worker progress notes will be preserved.
+                </div>
+              {% else %}
+                <div style="color: var(--brand); font-weight: 600; margin-top: 0.2rem;">
+                  ✓ Task deadline is valid ({% if task.due_date %}due {{ task.due_date }}{% else %}no due date{% endif %}). Returning will keep task assigned to @{{ task.claimed_by.username }} and reset status to In Progress.
+                </div>
+              {% endif %}
+            </div>
+
+            <form method="POST" action="{% url 'task_manager_review' task.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="review_action" value="return">
+              <div style="display: flex; gap: 0.4rem;">
+                <input type="text" name="feedback" placeholder="Revision requirements or return notes…" required style="font-size: 0.8rem; padding: 0.35rem 0.65rem;">
+                <button type="submit" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.85rem; white-space: nowrap; background: #FED7D7; color: var(--critical); font-weight: 700;">
+                  Confirm Return
+                </button>
+              </div>
+            </form>
+          </div>
+          {% endif %}
 
           <!-- Comments Thread Drawer -->
           <div id="assigner-comments-{{ task.pk }}" class="hidden" style="margin-top: 0.75rem; padding-top: 0.65rem; border-top: 1px dashed var(--border);">

@@ -42,7 +42,8 @@ def ensure_starter_project(user):
             priority="HIGH",
             effort_points=5,
             status="OPEN",
-            due_date=date.today() + timedelta(days=3),
+            is_multiclaimable=False,
+            due_date=timezone.localdate() + timedelta(days=3),
         )
         DelegationTask.objects.create(
             project=proj,
@@ -53,7 +54,8 @@ def ensure_starter_project(user):
             priority="MED",
             effort_points=3,
             status="OPEN",
-            due_date=date.today() + timedelta(days=4),
+            is_multiclaimable=True,
+            due_date=timezone.localdate() + timedelta(days=4),
         )
         DelegationTask.objects.create(
             project=proj,
@@ -65,7 +67,8 @@ def ensure_starter_project(user):
             priority="LOW",
             effort_points=2,
             status="COMPLETED",
-            due_date=date.today() - timedelta(days=1),
+            is_multiclaimable=False,
+            due_date=timezone.localdate() - timedelta(days=1),
             claimed_at=timezone.now(),
         )
 
@@ -87,7 +90,8 @@ def ensure_starter_project(user):
             priority="CRIT",
             effort_points=8,
             status="OPEN",
-            due_date=date.today() + timedelta(days=7),
+            is_multiclaimable=False,
+            due_date=timezone.localdate() + timedelta(days=7),
         )
         DelegationTask.objects.create(
             project=proj,
@@ -98,7 +102,8 @@ def ensure_starter_project(user):
             priority="HIGH",
             effort_points=5,
             status="OPEN",
-            due_date=date.today() + timedelta(days=9),
+            is_multiclaimable=True,
+            due_date=timezone.localdate() + timedelta(days=9),
         )
 
         # Gate 3: Locked behind Gate 2
@@ -119,7 +124,8 @@ def ensure_starter_project(user):
             priority="HIGH",
             effort_points=5,
             status="OPEN",
-            due_date=date.today() + timedelta(days=14),
+            is_multiclaimable=False,
+            due_date=timezone.localdate() + timedelta(days=14),
         )
         DelegationTask.objects.create(
             project=proj,
@@ -130,7 +136,8 @@ def ensure_starter_project(user):
             priority="MED",
             effort_points=3,
             status="OPEN",
-            due_date=date.today() + timedelta(days=16),
+            is_multiclaimable=False,
+            due_date=timezone.localdate() + timedelta(days=16),
         )
         return proj
 
@@ -156,9 +163,9 @@ def claimant_dashboard(request):
     Claimant Dashboard:
     - Top Stage-Gate Stepper
     - KPI Strip
-    - Live 'Mine!' Pool (unlocked OPEN tasks)
+    - Live 'Mine!' Pool (unlocked OPEN tasks, single-task mining limit unless Multi-Claim)
     - Dimmed locked preview
-    - Claimant's personal execution queue with 1-click status transitions & blocker toggles
+    - Claimant's personal execution queue with progress notes & submission for manager review
     """
     ensure_starter_project(request.user)
     projects = Project.objects.all().order_by('-created_at')
@@ -174,7 +181,15 @@ def claimant_dashboard(request):
 
     gates = project.gates.all().prefetch_related('tasks')
 
-    # Live open tasks in unlocked gates (waiting to be mined)
+    # Check if user already has an active task (across any project)
+    user_active_tasks = DelegationTask.objects.filter(
+        claimed_by=request.user,
+        status__in=['CLAIMED', 'IN_PROGRESS', 'IN_REVIEW']
+    )
+    user_has_active_task = user_active_tasks.exists()
+    user_active_count = user_active_tasks.count()
+
+    # Live open tasks in unlocked gates (status=OPEN and unclaimed; never COMPLETED)
     open_pool_tasks = DelegationTask.objects.filter(
         project=project,
         gate__is_unlocked=True,
@@ -238,13 +253,15 @@ def claimant_dashboard(request):
         'my_tasks': my_tasks,
         'my_tab': my_tab,
         'my_tabs_list': my_tabs_list,
+        'user_has_active_task': user_has_active_task,
+        'user_active_count': user_active_count,
         'kpi': {
             'open_to_mine': kpi_open,
             'my_mined': kpi_my_active,
             'story_points': kpi_points,
             'completed_by_me': kpi_completed,
         },
-        'today': date.today(),
+        'today': timezone.localdate(),
     })
 
 
@@ -252,9 +269,9 @@ def claimant_dashboard(request):
 def assigner_dashboard(request):
     """
     Assigner Gate Hub:
-    - Stage-Gate Pipeline stepper with Gate Approval & Unlock actions
-    - Task Dispatcher Composer (left column)
-    - Gate-grouped task & claimant oversight board (right column)
+    - Stage-Gate Pipeline stepper with Gate Approval & Unlock actions (100% completion enforced)
+    - Task Dispatcher Composer with is_multiclaimable flag
+    - Gate-grouped task & claimant oversight board with Manager Review (Approve or Return/Dissolve)
     """
     ensure_starter_project(request.user)
     projects = Project.objects.all().order_by('-created_at')
@@ -278,6 +295,7 @@ def assigner_dashboard(request):
             priority = request.POST.get('priority', 'MED')
             due_date = request.POST.get('due_date') or None
             desc = request.POST.get('description', '').strip()
+            is_multiclaimable = 'is_multiclaimable' in request.POST
 
             task = DelegationTask.objects.create(
                 project=project,
@@ -289,8 +307,10 @@ def assigner_dashboard(request):
                 effort_points=effort,
                 due_date=due_date,
                 status='OPEN',
+                is_multiclaimable=is_multiclaimable,
             )
-            messages.success(request, f'Dispatched "{task.title}" ({task.effort_points} pts) into {gate.name}.')
+            multi_note = " [Multi-Claim]" if is_multiclaimable else ""
+            messages.success(request, f'Dispatched "{task.title}" ({task.effort_points} pts){multi_note} into {gate.name}.')
             return redirect(f"/home/assign/?project={project.pk}")
 
     gates = project.gates.all().prefetch_related('tasks__claimed_by', 'tasks__created_by')
@@ -345,7 +365,7 @@ def assigner_dashboard(request):
         'filter_tabs': filter_tabs,
         'priority_choices': DelegationTask.PRIORITY_CHOICES,
         'effort_choices': [1, 2, 3, 5, 8],
-        'today': date.today(),
+        'today': timezone.localdate(),
     })
 
 
@@ -354,22 +374,39 @@ def assigner_dashboard(request):
 def mine_task(request, pk):
     """
     Atomic task-acquisition:
-    Checks if gate is unlocked and task is unclaimed.
-    Atomically updates claimed_by, status to CLAIMED, claimed_at.
+    - Enforces gate is unlocked
+    - Enforces task is OPEN and unclaimed
+    - Enforces Single-Task Mining Limit:
+      If user already has an active task (CLAIMED, IN_PROGRESS, IN_REVIEW),
+      blocks mining unless task.is_multiclaimable is True.
     """
     with transaction.atomic():
         task = get_object_or_404(DelegationTask.objects.select_for_update(), pk=pk)
 
+        # 1. Gate unlocked check
         if not task.gate or not task.gate.is_unlocked:
             messages.error(request, f'Cannot mine "{task.title}": Its gate is locked!')
+        # 2. Open state check
         elif task.claimed_by is not None or task.status != 'OPEN':
             messages.warning(request, f'Task "{task.title}" was already mined by another claimant.')
         else:
-            task.claimed_by = request.user
-            task.status = 'CLAIMED'
-            task.claimed_at = timezone.now()
-            task.save()
-            messages.success(request, f'⚡ Mined! "{task.title}" ({task.effort_points} pts) is now in your active queue!')
+            # 3. Active task limit check
+            user_has_active = DelegationTask.objects.filter(
+                claimed_by=request.user,
+                status__in=['CLAIMED', 'IN_PROGRESS', 'IN_REVIEW']
+            ).exists()
+
+            if user_has_active and not task.is_multiclaimable:
+                messages.error(
+                    request,
+                    'Finish or submit your active task first (only Multi-Claim tasks can be stacked).'
+                )
+            else:
+                task.claimed_by = request.user
+                task.status = 'CLAIMED'
+                task.claimed_at = timezone.now()
+                task.save()
+                messages.success(request, f'⚡ Mined! "{task.title}" ({task.effort_points} pts) is now in your active queue!')
 
     referer = request.META.get('HTTP_REFERER')
     return redirect(referer or 'claimant_dashboard')
@@ -379,11 +416,11 @@ def mine_task(request, pk):
 @require_POST
 def task_status_action(request, pk):
     """
-    Claimant & Assigner status transitions:
+    Claimant workflow status transitions:
     - start: CLAIMED -> IN_PROGRESS
     - review: IN_PROGRESS -> IN_REVIEW
-    - complete: IN_REVIEW / IN_PROGRESS -> COMPLETED
     - release: claimed task -> OPEN, claimed_by=None
+    NOTE: Claimants/Workers CANNOT mark tasks as COMPLETED!
     """
     task = get_object_or_404(DelegationTask, pk=pk)
     action = request.POST.get('action')
@@ -395,11 +432,10 @@ def task_status_action(request, pk):
     elif action == 'review':
         task.status = 'IN_REVIEW'
         task.save()
-        messages.info(request, f'Submitted "{task.title}" for review.')
+        messages.info(request, f'Submitted "{task.title}" for manager review.')
     elif action == 'complete':
-        task.status = 'COMPLETED'
-        task.save()
-        messages.success(request, f'🎉 "{task.title}" marked as completed!')
+        # Block claimants from completing directly
+        messages.error(request, 'Workers cannot mark tasks as completed. Please submit for review to allow managers to approve and mark done.')
     elif action == 'release':
         title = task.title
         task.status = 'OPEN'
@@ -409,7 +445,92 @@ def task_status_action(request, pk):
         messages.info(request, f'Released "{title}" back to the open pool.')
 
     referer = request.META.get('HTTP_REFERER')
-    return redirect(referer or 'home')
+    return redirect(referer or 'claimant_dashboard')
+
+
+@login_required
+@require_POST
+def task_update_notes(request, pk):
+    """
+    Claimant endpoint to update progress notes on their active task.
+    """
+    task = get_object_or_404(DelegationTask, pk=pk)
+    if task.claimed_by != request.user:
+        messages.error(request, 'You can only update notes on your own mined tasks.')
+    else:
+        notes = request.POST.get('progress_notes', '').strip()
+        task.progress_notes = notes
+        task.save()
+        messages.success(request, f'Progress notes saved for "{task.title}".')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or 'claimant_dashboard')
+
+
+@login_required
+@require_POST
+def task_manager_review(request, pk):
+    """
+    Assigner (Manager) Review & Return/Dissolve Logic:
+    - Approve & Mark Done: Sets status = 'COMPLETED'.
+    - Return with Feedback:
+      Case A (Due date NOT passed): Keep worker, status = 'IN_PROGRESS', append feedback as TaskComment.
+      Case B (Due date HAS passed): Overdue dissolution: increment dissolved_count += 1, claimed_by = None,
+        status = 'OPEN', preserve progress_notes and log system comment.
+    """
+    task = get_object_or_404(DelegationTask, pk=pk)
+    review_action = request.POST.get('review_action')
+
+    if review_action == 'approve':
+        task.status = 'COMPLETED'
+        task.save()
+        TaskComment.objects.create(
+            task=task,
+            author=request.user,
+            body="[Manager Approved]: Task verified and marked as COMPLETED."
+        )
+        messages.success(request, f'🎉 Task "{task.title}" approved and marked as COMPLETED!')
+
+    elif review_action == 'return':
+        feedback = request.POST.get('feedback', '').strip() or 'Revisions requested by manager.'
+        today = timezone.localdate()
+
+        if task.due_date and task.due_date < today:
+            # Case B: Due date HAS passed -> Dissolved back to open pool
+            task.dissolved_count += 1
+            former_claimant = task.claimed_by.username if task.claimed_by else "Worker"
+            task.claimed_by = None
+            task.claimed_at = None
+            task.status = 'OPEN'
+            task.save()
+
+            TaskComment.objects.create(
+                task=task,
+                author=request.user,
+                body=f"[Dissolved to Pool — Overdue]: Returned to open pool with all progress preserved. Feedback: {feedback}"
+            )
+            messages.warning(
+                request,
+                f'Task "{task.title}" was overdue (due {task.due_date}) and has been dissolved back to the open pool. Prior work and notes by @{former_claimant} preserved.'
+            )
+        else:
+            # Case A: Due date has NOT passed -> Keep assigned to same worker, status = IN_PROGRESS
+            task.status = 'IN_PROGRESS'
+            task.save()
+
+            worker_name = task.claimed_by.username if task.claimed_by else "worker"
+            TaskComment.objects.create(
+                task=task,
+                author=request.user,
+                body=f"[Returned for Revision]: {feedback}"
+            )
+            messages.info(
+                request,
+                f'Task "{task.title}" returned to @{worker_name} for revision.'
+            )
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or 'assigner_dashboard')
 
 
 @login_required
@@ -470,11 +591,20 @@ def task_delete(request, pk):
 @require_POST
 def gate_pass(request, pk):
     """
-    Stage-Gate sign-off:
-    Marks current gate as passed (is_passed=True) and automatically
-    unlocks the next sequential gate (is_unlocked=True).
+    Strict Stage-Gate sign-off:
+    A StageGate CANNOT be passed or unlock the next gate unless
+    gate.total_tasks > 0 AND gate.completed_tasks == gate.total_tasks (100% completed).
     """
     gate = get_object_or_404(StageGate, pk=pk)
+
+    if not gate.ready_to_pass:
+        messages.error(
+            request,
+            f'Cannot pass Gate {gate.order} ({gate.name}): All tasks in this gate must be completed first ({gate.completed_tasks}/{gate.total_tasks} completed).'
+        )
+        referer = request.META.get('HTTP_REFERER')
+        return redirect(referer or 'assigner_dashboard')
+
     gate.is_passed = True
     gate.save()
 
