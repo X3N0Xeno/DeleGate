@@ -1,0 +1,9 @@
+.env
+db.sqlite3
+__pycache__/
+*.pyc
+BASELINE_COMMIT.txt
+GIT_*.txt
+*.patch
+BANZON_FINAL_PROJECT/
+*.zip
