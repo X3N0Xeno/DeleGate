@@ -11,26 +11,32 @@
       {{ user.username|slice:":2"|upper }}
     </div>
     <div style="flex:1;">
-      <h1 style="font-size:1.3rem; font-weight:700; color:var(--text-primary); margin-bottom:0.15rem;">
-        {{ user.get_full_name|default:user.username }}
-      </h1>
+      <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.15rem;">
+        <h1 style="font-size:1.3rem; font-weight:700; color:var(--text-primary); margin:0;">
+          {{ user.get_full_name|default:user.username }}
+        </h1>
+        <span class="pill pill-low" style="text-transform:none; font-size:0.75rem;">
+          {{ profile.get_preferred_role_display }}
+        </span>
+      </div>
       <div class="text-muted text-sm">{{ profile.role_title }}{% if profile.department %} · {{ profile.department }}{% endif %}</div>
-      <div style="display:flex; gap:1.5rem; margin-top:1rem;">
+      
+      <div style="display:flex; gap:1.5rem; margin-top:1rem; flex-wrap:wrap;">
         <div style="text-align:center;">
-          <div style="font-size:1.3rem; font-weight:700; color:var(--brand);">{{ stats.total }}</div>
-          <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Delegated</div>
+          <div style="font-size:1.3rem; font-weight:700; color:var(--brand);">{{ stats.dispatched }}</div>
+          <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Dispatched</div>
         </div>
         <div style="text-align:center;">
-          <div style="font-size:1.3rem; font-weight:700; color:var(--accent);">{{ stats.completed }}</div>
+          <div style="font-size:1.3rem; font-weight:700; color:var(--accent);">{{ stats.total_mined }}</div>
+          <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Mined Tasks</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.3rem; font-weight:700; color:var(--brand);">{{ stats.completed }}</div>
           <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Completed</div>
         </div>
         <div style="text-align:center;">
-          <div style="font-size:1.3rem; font-weight:700; color:var(--text-secondary);">{{ stats.received }}</div>
-          <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Received</div>
-        </div>
-        <div style="text-align:center;">
           <div style="font-size:1.3rem; font-weight:700; color:var(--amber);">{{ stats.completion_rate }}%</div>
-          <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Rate</div>
+          <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Success Rate</div>
         </div>
       </div>
     </div>
@@ -38,7 +44,7 @@
 
   <!-- Edit Form -->
   <div class="card">
-    <h2 style="font-size:1rem; font-weight:700; margin-bottom:1.5rem; color:var(--text-primary);">Edit Profile</h2>
+    <h2 style="font-size:1rem; font-weight:700; margin-bottom:1.5rem; color:var(--text-primary);">Edit Profile & Workspace Mode</h2>
 
     {% if messages %}
       {% for message in messages %}
@@ -48,6 +54,19 @@
 
     <form method="POST">
       {% csrf_token %}
+
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label for="preferred_role">Default Workspace Focus</label>
+        <select name="preferred_role" id="preferred_role">
+          <option value="CLAIMANT" {% if profile.preferred_role == 'CLAIMANT' %}selected{% endif %}>
+            Claimant Pool (Mine!) — Focused task acquisition & agile execution
+          </option>
+          <option value="ASSIGNER" {% if profile.preferred_role == 'ASSIGNER' %}selected{% endif %}>
+            Assigner Gate Hub — Stage-Gate governance, milestone sign-offs & dispatch
+          </option>
+        </select>
+        <span class="text-xs text-muted" style="margin-top:0.25rem;">This determines which dashboard opens by default when visiting /home/.</span>
+      </div>
 
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
         <div class="form-group">
@@ -68,11 +87,11 @@
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
         <div class="form-group">
           <label for="role_title">Role Title</label>
-          <input type="text" name="role_title" id="role_title" value="{{ profile.role_title }}" placeholder="e.g. Team Lead">
+          <input type="text" name="role_title" id="role_title" value="{{ profile.role_title }}" placeholder="e.g. Lead Architect">
         </div>
         <div class="form-group">
           <label for="department">Department</label>
-          <input type="text" name="department" id="department" value="{{ profile.department }}" placeholder="e.g. Engineering">
+          <input type="text" name="department" id="department" value="{{ profile.department }}" placeholder="e.g. Platform Systems">
         </div>
       </div>
 

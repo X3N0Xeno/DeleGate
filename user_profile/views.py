@@ -12,6 +12,7 @@ def profile_view(request):
         profile.role_title = request.POST.get('role_title', profile.role_title).strip()
         profile.department = request.POST.get('department', profile.department).strip()
         profile.bio = request.POST.get('bio', profile.bio).strip()
+        profile.preferred_role = request.POST.get('preferred_role', profile.preferred_role)
         request.user.first_name = request.POST.get('first_name', request.user.first_name).strip()
         request.user.last_name = request.POST.get('last_name', request.user.last_name).strip()
         request.user.save()
@@ -19,17 +20,19 @@ def profile_view(request):
         messages.success(request, 'Profile updated successfully.')
         return redirect('user_profile:profile')
 
-    total = DelegationTask.objects.filter(assigned_by=request.user).count()
-    completed = DelegationTask.objects.filter(assigned_by=request.user, status='COMPLETED').count()
-    received = DelegationTask.objects.filter(assigned_to=request.user).count()
-    completion_rate = int((completed / total * 100) if total > 0 else 0)
+    total_dispatched = DelegationTask.objects.filter(created_by=request.user).count()
+    total_mined = DelegationTask.objects.filter(claimed_by=request.user).count()
+    completed_mined = DelegationTask.objects.filter(claimed_by=request.user, status='COMPLETED').count()
+    active_mined = DelegationTask.objects.filter(claimed_by=request.user).exclude(status='COMPLETED').count()
+    completion_rate = int((completed_mined / total_mined * 100) if total_mined > 0 else 0)
 
     return render(request, 'user_profile/profile.html', {
         'profile': profile,
         'stats': {
-            'total': total,
-            'completed': completed,
-            'received': received,
+            'dispatched': total_dispatched,
+            'total_mined': total_mined,
+            'completed': completed_mined,
+            'active_mined': active_mined,
             'completion_rate': completion_rate,
         }
     })

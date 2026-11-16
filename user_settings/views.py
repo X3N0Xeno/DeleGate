@@ -3,20 +3,28 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import update_session_auth_hash
 from django.contrib import messages
 from .models import UserSettings
+from user_profile.models import Profile
 
 @login_required
 def settings_view(request):
     settings_obj, _ = UserSettings.objects.get_or_create(user=request.user)
+    profile, _ = Profile.objects.get_or_create(user=request.user)
 
     if request.method == 'POST':
         action = request.POST.get('action')
 
         if action == 'preferences':
             settings_obj.default_priority = request.POST.get('default_priority', 'MED')
+            settings_obj.default_dashboard = request.POST.get('default_dashboard', 'CLAIMANT')
             settings_obj.compact_view = 'compact_view' in request.POST
             settings_obj.email_notifications = 'email_notifications' in request.POST
             settings_obj.weekly_digest = 'weekly_digest' in request.POST
             settings_obj.save()
+
+            # Keep profile preferred role in sync
+            profile.preferred_role = settings_obj.default_dashboard
+            profile.save()
+
             messages.success(request, 'Preferences saved.')
 
         elif action == 'password':
