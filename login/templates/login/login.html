@@ -1,27 +1,81 @@
-{% extends "base.html" %}
-
-{% block title %}DeleGate - Login{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Sign In | DeleGate{% endblock %}
 
 {% block content %}
-<div class="auth-container">
-    <div class="card">
-        <h2>DeleGate</h2>
-        <p class="subtitle">Stage-Gate Project Management</p>
-        
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert {% if message.tags == 'success' %}alert-success{% endif %}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
+<div class="auth-wrap">
+  <div class="auth-card">
 
-        <form method="POST">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Log In</button>
-        </form>
-        <div class="footer-link">
-            No account yet? <a href="{% url 'register' %}">Register</a>
-        </div>
+    <!-- Logo / Brand -->
+    <div class="text-center" style="margin-bottom: 1.75rem;">
+      <div style="display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; background:var(--accent-soft); border-radius:var(--radius-md); margin-bottom:1rem;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="5" r="2.5" fill="#2D6A4F"/>
+          <circle cx="5" cy="17" r="2.5" fill="#52B788"/>
+          <circle cx="19" cy="17" r="2.5" fill="#52B788"/>
+          <line x1="12" y1="7.5" x2="5" y2="14.5" stroke="#2D6A4F" stroke-width="1.5"/>
+          <line x1="12" y1="7.5" x2="19" y2="14.5" stroke="#2D6A4F" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <h1 style="font-size:1.5rem; font-weight:700; color:var(--text-primary); margin-bottom:0.3rem;">Welcome back</h1>
+      <p class="text-muted text-sm">Sign in to your DeleGate workspace</p>
     </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+          {% if message.tags == 'error' %}
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {% endif %}
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Form -->
+    <form method="POST" novalidate>
+      {% csrf_token %}
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label for="id_username">Username</label>
+        <input type="text" name="username" id="id_username" autocomplete="username"
+               value="{{ form.username.value|default:'' }}"
+               placeholder="your_username" required>
+        {% if form.username.errors %}
+          <span class="text-xs" style="color:var(--critical);">{{ form.username.errors.0 }}</span>
+        {% endif %}
+      </div>
+
+      <div class="form-group" style="margin-bottom:0.5rem; position:relative;">
+        <label for="id_password">Password</label>
+        <input type="password" name="password" id="id_password" autocomplete="current-password"
+               placeholder="••••••••" required>
+        <button type="button" onclick="togglePwd('id_password', this)"
+                style="position:absolute; right:0.75rem; top:2.1rem; background:none; border:none; cursor:pointer; color:var(--text-secondary); padding:0.2rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:1.25rem;">
+        Sign In
+      </button>
+    </form>
+
+    <p class="text-center text-sm text-muted" style="margin-top:1.5rem;">
+      Don't have an account?
+      <a href="{% url 'register' %}" style="color:var(--brand); font-weight:600; text-decoration:none;">Create one →</a>
+    </p>
+  </div>
 </div>
+
+<script>
+function togglePwd(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  btn.innerHTML = isHidden
+    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+}
+</script>
 {% endblock %}
