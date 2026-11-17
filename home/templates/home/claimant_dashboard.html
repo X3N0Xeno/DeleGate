@@ -58,7 +58,7 @@
           <div class="row-main">
             <button type="button" class="row-title" data-open-drawer="tpl-task-{{ task.pk }}">{{ task.title }}</button>
             <p class="row-meta">
-              <span class="mono">G{{ task.gate.order }}</span>
+              <span class="gate-pill">G{{ task.gate.order }}</span>
               {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
               {% if task.dissolved_count %}<span class="flag flag-danger">Returned to pool {{ task.dissolved_count }}x, notes kept</span>{% endif %}
               <span>from @{{ task.created_by.username|default:"admin" }}</span>
@@ -104,7 +104,7 @@
             <div class="row-main">
               <span class="row-title">{{ task.title }}</span>
               <p class="row-meta">
-                <span class="mono">G{{ task.gate.order }}</span>
+                <span class="gate-pill">G{{ task.gate.order }}</span>
                 <span>{{ task.gate.name|gate_title }}</span>
                 {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
               </p>
@@ -139,7 +139,7 @@
           <div class="row-main">
             <button type="button" class="row-title{% if task.status == 'COMPLETED' %} is-done{% endif %}" data-open-drawer="tpl-task-{{ task.pk }}">{{ task.title }}</button>
             <p class="row-meta">
-              <span class="mono">G{{ task.gate.order }}</span>
+              <span class="gate-pill">G{{ task.gate.order }}</span>
               <span>{{ task.get_status_display }}</span>
               {% if task.is_blocked %}<span class="flag flag-danger">Blocked</span>{% endif %}
             </p>

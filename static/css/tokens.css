@@ -1,8 +1,8 @@
 /* ==========================================================================
    DeleGate design tokens
-   One set of semantic names, three themes. Components only ever read the
-   semantic names (--bg, --surface, --ink, --accent ...), never a raw hex.
-   Switch themes with <html data-theme="kyoto|shiroi|hinoki">.
+   Non-colour tokens live here. Colour lives in solarpunk.css, driven by
+   circadian.js. Components only read semantic names (--bg, --surface, --ink,
+   --accent ...), never a raw hex.
    ========================================================================== */
 
 :root {
@@ -38,81 +38,10 @@
   /* Density (Settings > Compact rows) */
   --row-pad: 14px;
 
-  color-scheme: light;
 }
 
 [data-density="compact"] {
   --row-pad: 8px;
-}
-
-/* --------------------------------------------------------------------------
-   1. Kyoto Moss: botanical focus (default)
-   -------------------------------------------------------------------------- */
-:root,
-[data-theme="kyoto"] {
-  --bg: #F7F8F5;            /* warm alabaster paper */
-  --surface: #FFFFFF;       /* crisp white */
-  --sunken: #EEF1EB;
-  --line: #E1E6DE;
-  --line-strong: #C9D1C6;
-  --ink: #16241D;           /* charcoal ink */
-  --ink-2: #44574B;
-  --ink-3: #5F7266;
-  --accent: #234E3D;        /* deep forest pine */
-  --accent-hover: #193B2D;
-  --accent-soft: #E6EFEA;   /* soft sage mist */
-  --on-accent: #FFFFFF;
-  --signal: #A47E22;        /* warm marker: open gates, in review, due soon */
-  --signal-ink: #765609;
-  --signal-soft: #F3ECD8;
-  --danger: #A23D2B;
-  --danger-soft: #F6E5E0;
-}
-
-/* --------------------------------------------------------------------------
-   2. Shiroi Stone: mineral clarity
-   -------------------------------------------------------------------------- */
-[data-theme="shiroi"] {
-  --bg: #F2F4F7;            /* cool architectural mist */
-  --surface: #FFFFFF;       /* pure porcelain */
-  --sunken: #E8ECF0;
-  --line: #DCE2E8;          /* frosted pebble */
-  --line-strong: #C2CBD5;
-  --ink: #182026;           /* deep obsidian */
-  --ink-2: #404E59;
-  --ink-3: #596976;
-  --accent: #2C5E63;        /* tranquil slate-teal */
-  --accent-hover: #204A4E;
-  --accent-soft: #E0EDEE;
-  --on-accent: #FFFFFF;
-  --signal: #B06A2A;
-  --signal-ink: #854A15;
-  --signal-soft: #F5E9DC;
-  --danger: #A33B3B;
-  --danger-soft: #F6E3E3;
-}
-
-/* --------------------------------------------------------------------------
-   3. Hinoki Sand: warm calm
-   -------------------------------------------------------------------------- */
-[data-theme="hinoki"] {
-  --bg: #F6F2EA;           /* unbleached warm linen */
-  --surface: #FCFBF7;      /* soft ivory */
-  --sunken: #EDE7DA;
-  --line: #E3DCCB;
-  --line-strong: #CCC3AE;
-  --ink: #26221C;          /* espresso charcoal */
-  --ink-2: #51493D;
-  --ink-3: #6B6252;
-  --accent: #4A5D3F;       /* muted cedar-olive */
-  --accent-hover: #3B4A32;
-  --accent-soft: #E7EADB;
-  --on-accent: #FFFFFF;
-  --signal: #B86B4B;       /* warm clay */
-  --signal-ink: #8F4C32;
-  --signal-soft: #F3E3D9;
-  --danger: #A23F29;
-  --danger-soft: #F4E2DA;
 }
 
 /* Derived tokens, theme-independent */
@@ -120,8 +49,8 @@
   --field-line: color-mix(in srgb, var(--ink-3) 80%, var(--surface));
 }
 
-/* Theme previews: fixed colours so each swatch always shows its own palette,
-   whichever theme is active. Keep in sync with the blocks above. */
-[data-swatch="kyoto"]  { --sw-bg: #F7F8F5; --sw-soft: #E6EFEA; --sw-accent: #234E3D; --sw-ink: #16241D; }
-[data-swatch="shiroi"] { --sw-bg: #F2F4F7; --sw-soft: #E0EDEE; --sw-accent: #2C5E63; --sw-ink: #182026; }
-[data-swatch="hinoki"] { --sw-bg: #F6F2EA; --sw-soft: #E7EADB; --sw-accent: #4A5D3F; --sw-ink: #26221C; }
+/* Theme previews: fixed colours so each swatch always shows its own daylight
+   palette, whatever theme and hour are active. Keep in sync with circadian.js. */
+[data-swatch="aether"]  { --sw-bg: #F7F6F0; --sw-soft: #FBE8B8; --sw-accent: #1F5E45; --sw-ink: #14231C; }
+[data-swatch="terrace"] { --sw-bg: #F4EFE4; --sw-soft: #DDE6C9; --sw-accent: #2D6A4F; --sw-ink: #1F261E; }
+[data-swatch="mist"]    { --sw-bg: #EEF3F3; --sw-soft: #CFE6E6; --sw-accent: #1D5B5E; --sw-ink: #12242A; }

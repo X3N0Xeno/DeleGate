@@ -1,7 +1,8 @@
 /* DeleGate UI behaviour. Vanilla, no dependencies.
    Everything is wired through data-* attributes so the templates stay declarative:
 
-   data-theme-set="kyoto"          theme switcher buttons
+   data-theme-set="aether"         theme switcher buttons
+   data-sun-set="auto|dawn|day|golden|night"   time-of-day preview pills
    data-open-drawer="tpl-id"       open the slide-over with the contents of <template id="tpl-id">
    data-drawer-close               close the slide-over
    <form data-confirm="...">       ask in-app instead of window.confirm()
@@ -59,11 +60,10 @@
   window.dgToast = toast;
 
   /* ----------------------------------------------------------------- theme */
-  var THEMES = ['kyoto', 'shiroi', 'hinoki'];
+  var THEMES = ['aether', 'terrace', 'mist'];
 
+  // circadian.js owns the colours; this only keeps the pickers in step with it.
   function paintTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    store.set('dg-theme', theme);
     $$('[data-theme-set]').forEach(function (btn) {
       var on = btn.getAttribute('data-theme-set') === theme;
       btn.setAttribute('aria-checked', on ? 'true' : 'false');
@@ -73,7 +73,8 @@
 
   function chooseTheme(theme, url) {
     if (THEMES.indexOf(theme) === -1) return;
-    paintTheme(theme);               // instant, client side
+    if (window.Circadian) window.Circadian.setTheme(theme);   // instant, client side
+    paintTheme(theme);
     if (!signedIn || !url) return;   // signed-out pages only remember it locally
     fetch(url, {
       method: 'POST',
@@ -114,7 +115,47 @@
     next.click();
   });
 
-  paintTheme(document.documentElement.getAttribute('data-theme') || 'kyoto');
+  paintTheme(document.documentElement.getAttribute('data-solarpunk-theme') || 'aether');
+
+  // ------------------------------------------------------------- time of day
+  var SUN_DETAIL = {
+    auto: 'Following your local sun',
+    dawn: 'Previewing dawn',
+    day: 'Previewing solar day',
+    golden: 'Previewing golden hour',
+    night: 'Previewing night'
+  };
+
+  function paintSun() {
+    if (!window.Circadian) return;
+    var st = window.Circadian.getState();
+    $$('[data-sun-set]').forEach(function (btn) {
+      var on = btn.getAttribute('data-sun-set') === st.mode;
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+      btn.tabIndex = on ? 0 : -1;
+    });
+    $$('[data-sun-label]').forEach(function (el) { el.textContent = st.label; });
+    $$('[data-sun-detail]').forEach(function (el) {
+      if (el.closest('.sun-panel')) el.textContent = SUN_DETAIL[st.mode];
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-sun-set]');
+    if (btn && window.Circadian) window.Circadian.setMode(btn.getAttribute('data-sun-set'));
+  });
+  document.addEventListener('keydown', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-sun-set]');
+    if (!btn || ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].indexOf(e.key) === -1) return;
+    var group = $$('[data-sun-set]', btn.closest('[role="radiogroup"]'));
+    var i = group.indexOf(btn);
+    var next = group[(i + (e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? group.length - 1 : 1)) % group.length];
+    e.preventDefault();
+    next.focus();
+    next.click();
+  });
+  window.addEventListener('circadian:change', paintSun);
+  paintSun();
 
   /* ---------------------------------------------------------------- drawer */
   var drawer = $('#drawer');

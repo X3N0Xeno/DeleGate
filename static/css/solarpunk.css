@@ -1,0 +1,163 @@
+/* ==========================================================================
+   Solarpunk colour layer
+   circadian.js writes nine raw palette values onto <html>:
+     --bg-canvas --bg-surface --bg-elevated --border-hairline
+     --text-primary --text-secondary --accent-primary --accent-solar
+     --ambient-sky-glow
+   Everything below turns those into the semantic tokens the components use.
+   Theme: <html data-solarpunk-theme="aether|terrace|mist">
+   Phase: <html data-phase="dawn|day|golden|night">
+   ========================================================================== */
+
+/* Registered so the browser can ease them. circadian.js sets a new value every
+   minute and the 1.2s transition below turns that into a slow drift. */
+@property --bg-canvas        { syntax: "<color>"; inherits: true; initial-value: #F7F6F0; }
+@property --bg-surface       { syntax: "<color>"; inherits: true; initial-value: #FDFCF8; }
+@property --bg-elevated      { syntax: "<color>"; inherits: true; initial-value: #EFEEE5; }
+@property --border-hairline  { syntax: "<color>"; inherits: true; initial-value: #DDDCCE; }
+@property --text-primary     { syntax: "<color>"; inherits: true; initial-value: #14231C; }
+@property --text-secondary   { syntax: "<color>"; inherits: true; initial-value: #3F5247; }
+@property --accent-primary   { syntax: "<color>"; inherits: true; initial-value: #1F5E45; }
+@property --accent-solar     { syntax: "<color>"; inherits: true; initial-value: #C88A2B; }
+@property --ambient-sky-glow { syntax: "<color>"; inherits: true; initial-value: #FBE8B8; }
+@property --ink-3            { syntax: "<color>"; inherits: true; initial-value: #4B5D52; }
+@property --signal-ink       { syntax: "<color>"; inherits: true; initial-value: #6B5016; }
+@property --danger           { syntax: "<color>"; inherits: true; initial-value: #8E2F23; }
+
+:root {
+  /* Fallbacks for a browser with scripting off: Aether Atrium, solar day */
+  --bg-canvas: #F7F6F0; --bg-surface: #FDFCF8; --bg-elevated: #EFEEE5; --border-hairline: #DDDCCE;
+  --text-primary: #14231C; --text-secondary: #3F5247;
+  --accent-primary: #1F5E45; --accent-solar: #C88A2B; --ambient-sky-glow: #FBE8B8;
+  --on-accent: #FFFFFF;
+
+  /* Semantic tokens. --ink-3, --signal-ink and --danger are solved by circadian.js
+     (contrast-checked at every hour); the values here are the no-script fallback. */
+  --bg: var(--bg-canvas);
+  --surface: var(--bg-surface);
+  --sunken: var(--bg-elevated);
+  --line: var(--border-hairline);
+  --line-strong: color-mix(in srgb, var(--border-hairline) 62%, var(--text-secondary));
+  --ink: var(--text-primary);
+  --ink-2: var(--text-secondary);
+  --ink-3: color-mix(in srgb, var(--text-secondary) 90%, var(--bg-canvas));
+  --accent: var(--accent-primary);
+  --accent-hover: color-mix(in srgb, var(--accent-primary) 80%, var(--text-primary));
+  --accent-soft: color-mix(in srgb, var(--accent-primary) 11%, var(--bg-surface));
+  --signal: var(--accent-solar);
+  --signal-ink: color-mix(in srgb, var(--accent-solar) 52%, var(--text-primary));
+  --signal-soft: color-mix(in srgb, var(--accent-solar) 15%, var(--bg-surface));
+  --danger: color-mix(in srgb, #C0392B 68%, var(--text-primary));
+  --danger-soft: color-mix(in srgb, #C0392B 12%, var(--bg-surface));
+
+  /* Glass: translucent panes that let the sky glow show through */
+  --glass: color-mix(in srgb, var(--bg-surface) 74%, transparent);
+  --glass-blur: blur(14px) saturate(1.15);
+
+  color-scheme: light;
+}
+
+:root[data-phase="night"] { color-scheme: dark; }
+
+/* ---- Easing between palettes (armed after first paint; see circadian.js) --- */
+:root.sun-ready {
+  transition:
+    --bg-canvas 1.2s ease, --bg-surface 1.2s ease, --bg-elevated 1.2s ease,
+    --border-hairline 1.2s ease, --text-primary 1.2s ease, --text-secondary 1.2s ease,
+    --accent-primary 1.2s ease, --accent-solar 1.2s ease, --ambient-sky-glow 1.2s ease,
+    --ink-3 1.2s ease, --signal-ink 1.2s ease, --danger 1.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root.sun-ready { transition: none; }
+}
+
+/* ---- Ambient sky: a soft wash from the top right, fixed behind everything -- */
+body {
+  background:
+    radial-gradient(70rem 38rem at 92% -12%, color-mix(in srgb, var(--ambient-sky-glow) 34%, transparent), transparent 70%),
+    radial-gradient(50rem 30rem at -8% 108%, color-mix(in srgb, var(--accent-primary) 6%, transparent), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* ---- Night: the glass gets a little more body so text stays crisp ---------- */
+:root[data-phase="night"] { --glass: color-mix(in srgb, var(--bg-surface) 82%, transparent); }
+
+/* ==========================================================================
+   Controls and motion
+   ========================================================================== */
+
+/* Sun popover */
+.sun-menu > summary { gap: 8px; }
+.sun-menu .ico-sun {
+  width: 16px; height: 16px; flex: none; color: var(--signal-ink);
+  fill: color-mix(in srgb, var(--accent-solar) 30%, transparent);
+  stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; transition: none;
+}
+.sun-menu[open] > summary .ico-sun { transform: none; }
+.sun-panel { min-width: 260px; padding: 14px; }
+.sun-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+.sun-head strong { font-weight: 600; }
+.sun-head span, .sun-pills + .hint { font-size: var(--fs-xs); color: var(--ink-3); }
+
+.sun-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill {
+  height: 28px; padding: 0 12px;
+  border: 1px solid var(--field-line); border-radius: 999px;
+  background: transparent; color: var(--ink-2);
+  font: 500 var(--fs-xs) / 1 var(--font-sans);
+  cursor: pointer;
+  transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast);
+}
+.pill small { margin-left: 4px; font-size: inherit; color: var(--ink-3); }
+.pill:hover { background: var(--sunken); color: var(--ink); }
+.pill:active { transform: scale(0.96); }
+.pill[aria-checked="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.pill[aria-checked="true"] small { color: inherit; }
+.pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Gate pill in task rows */
+.gate-pill {
+  display: inline-flex; align-items: center; height: 18px; padding: 0 7px;
+  border: 1px solid var(--line-strong); border-radius: 999px;
+  font: 500 var(--fs-xs) / 1 var(--font-mono); color: var(--ink-2);
+}
+
+/* Glasshouse surfaces: 14px blur on every translucent pane */
+.sidebar, .topbar, .drawer-panel, .menu-panel {
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+.drawer-panel { background: var(--glass); }
+.menu-panel { background: color-mix(in srgb, var(--bg-surface) 93%, transparent); }
+
+/* Slide-over easing */
+.drawer-panel { transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1); }
+@media (prefers-reduced-motion: reduce) { .drawer-panel { transition: none; } }
+
+/* Tactile presses */
+.btn, .icon-btn, .swatch, .theme-opt { transition-property: background, border-color, color, transform; }
+.btn:active, .icon-btn:active { transform: translateY(1px) scale(0.98); }
+.theme-opt:active { transform: scale(0.985); }
+
+/* Staggered entrance: one gentle rise, then still */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .js .gates .gate,
+  .js .rows > .row,
+  .js .pane-side ul > .row,
+  .js .setting,
+  .js .page-head,
+  .js .stats,
+  .js .auth-form > * {
+    animation: riseIn 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .js .page-head { animation-delay: 0ms; }
+  .js .gates .gate:nth-child(2), .js .rows > .row:nth-child(2), .js .pane-side ul > .row:nth-child(2), .js .setting:nth-of-type(2), .js .auth-form > :nth-child(2) { animation-delay: 60ms; }
+  .js .gates .gate:nth-child(3), .js .rows > .row:nth-child(3), .js .pane-side ul > .row:nth-child(3), .js .setting:nth-of-type(3), .js .auth-form > :nth-child(3) { animation-delay: 120ms; }
+  .js .gates .gate:nth-child(4), .js .rows > .row:nth-child(4), .js .pane-side ul > .row:nth-child(4), .js .setting:nth-of-type(4), .js .auth-form > :nth-child(4) { animation-delay: 180ms; }
+  .js .gates .gate:nth-child(n+5), .js .rows > .row:nth-child(n+5), .js .pane-side ul > .row:nth-child(n+5), .js .setting:nth-of-type(n+5), .js .auth-form > :nth-child(n+5) { animation-delay: 240ms; }
+}

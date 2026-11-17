@@ -1,5 +1,5 @@
 {% load static %}<!DOCTYPE html>
-<html lang="en" data-theme="{{ ui_theme|default:'kyoto' }}"{% if ui_compact %} data-density="compact"{% endif %}>
+<html lang="en" data-solarpunk-theme="{{ ui_theme|default:'aether' }}"{% if ui_compact %} data-density="compact"{% endif %}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,11 +12,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <script src="{% static 'js/theme-boot.js' %}"></script>
+  <script src="{% static 'js/circadian.js' %}"></script>
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}">
   <link rel="stylesheet" href="{% static 'css/components.css' %}">
   <link rel="stylesheet" href="{% static 'css/pages.css' %}">
+  <link rel="stylesheet" href="{% static 'css/solarpunk.css' %}">
   {% block head_extra %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -78,6 +79,7 @@
         </div>
 
         <div class="topbar-tools">
+          {% include 'partials/_sun_control.html' %}
           {% include 'partials/_theme_switch.html' %}
 
           <details class="menu">
@@ -129,7 +131,7 @@
   {% endblock %}
 
   <dialog class="drawer" id="drawer" aria-labelledby="drawer-title">
-    <div class="drawer-panel">
+    <aside class="drawer-panel" aria-label="Details">
       <header class="drawer-head">
         <div>
           <p class="drawer-kicker" id="drawer-kicker"></p>
@@ -140,7 +142,7 @@
         </button>
       </header>
       <div class="drawer-body" id="drawer-body"></div>
-    </div>
+    </aside>
   </dialog>
 
   <dialog class="confirm" id="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-message">

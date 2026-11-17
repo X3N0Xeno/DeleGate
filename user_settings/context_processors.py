@@ -4,7 +4,7 @@ from django.urls import reverse
 from user_profile.models import Profile
 from .models import UserSettings
 
-DEFAULT_THEME = 'kyoto'
+DEFAULT_THEME = 'aether'
 _WORKSPACES = {
     'CLAIMANT': ('claimant_dashboard', 'Open work'),
     'ASSIGNER': ('assigner_dashboard', 'Gate hub'),

@@ -20,7 +20,7 @@
     <section class="setting">
       <div>
         <h2 class="setting-title">Theme</h2>
-        <p class="setting-desc">Changes apply right away and follow you to other devices.</p>
+        <p class="setting-desc">The palette follows the sun by default. Changes apply right away and follow you to other devices.</p>
       </div>
       <div class="setting-body">
         <div class="themes" role="radiogroup" aria-label="Theme" data-theme-url="{% url 'user_settings:set_theme' %}">
@@ -29,10 +29,16 @@
             <span class="theme-strip" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
             <span>
               <strong>{{ label }}</strong>
-              <small>{% if value == 'kyoto' %}Botanical focus{% elif value == 'shiroi' %}Mineral clarity{% else %}Warm calm{% endif %}</small>
+              <small>{% if value == 'aether' %}Sunlit alabaster and brass{% elif value == 'terrace' %}Linen, moss and terracotta{% else %}Porcelain and verdigris{% endif %}</small>
             </span>
           </button>
           {% endfor %}
+        </div>
+
+        <div class="field">
+          <span class="label">Time of day</span>
+          {% include 'partials/_sun_pills.html' %}
+          <span class="hint" data-sun-detail>Following your local sun. Pick a time to preview it. This is saved in this browser only.</span>
         </div>
 
         {% for field_name, field_label, field_desc, field_val in toggles %}{% if field_name == 'compact_view' %}
