@@ -44,15 +44,15 @@
     <h2 class="sr-only" id="board-title">Task board</h2>
 
     <div class="board-tools">
-      <nav class="tabs" aria-label="Filter tasks by status">
+      <nav class="tabs" aria-label="Filter tasks by status" data-instant-filter="assigner-board">
         {% for t in filter_tabs %}
-        <a class="tab" href="?project={{ project.pk }}&amp;gate={{ gate_filter }}&amp;status={{ t.key }}"{% if t.active %} aria-current="page"{% endif %}>{{ t.label }}<span class="mono">{{ t.count }}</span></a>
+        <a class="tab" href="?project={{ project.pk }}&amp;gate={{ gate_filter }}&amp;status={{ t.key }}" data-filter-tab="{{ t.key }}"{% if t.active %} aria-current="page"{% endif %}>{{ t.label }}<span class="mono">{{ t.count }}</span></a>
         {% endfor %}
       </nav>
 
       <label class="gate-filter">
         <span>Gate</span>
-        <select class="select select-inline" data-nav-template="?project={{ project.pk }}&amp;status={{ status_filter }}&amp;gate=__v__">
+        <select class="select select-inline" data-instant-gate-filter data-nav-template="?project={{ project.pk }}&amp;status={{ status_filter }}&amp;gate=__v__">
           <option value="all"{% if gate_filter == 'all' %} selected{% endif %}>All gates</option>
           {% for g in gates %}
           <option value="{{ g.pk }}"{% if gate_filter == g.pk|stringformat:"s" %} selected{% endif %}>G{{ g.order }} {{ g.name|gate_title }}</option>
@@ -61,47 +61,50 @@
       </label>
     </div>
 
-    {% regroup tasks by gate as groups %}
-    {% for group in groups %}
-    <div class="group-head">
-      <span class="group-code">G{{ group.grouper.order }}</span>
-      <h3 class="group-name">{{ group.grouper.name|gate_title }}</h3>
-      <span class="group-count mono">{{ group.list|length }} task{{ group.list|length|pluralize }}</span>
-    </div>
+    <div id="assigner-task-board">
+      {% regroup all_tasks by gate as groups %}
+      {% for group in groups %}
+      <div class="gate-group-container" data-gate-group="{{ group.grouper.pk }}">
+        <div class="group-head">
+          <span class="group-code">G{{ group.grouper.order }}</span>
+          <h3 class="group-name">{{ group.grouper.name|gate_title }}</h3>
+          <span class="group-count mono" data-group-count>{{ group.list|length }} task{{ group.list|length|pluralize }}</span>
+        </div>
 
-    <ul class="rows">
-      {% for task in group.list %}
-      <li class="row" id="task-{{ task.pk }}">
-        <span class="row-glyph">{% include 'home/partials/_stat.html' with s=task.status label=task.get_status_display %}</span>
-        <div class="row-main">
-          <button type="button" class="row-title{% if task.status == 'COMPLETED' %} is-done{% endif %}" data-open-drawer="tpl-task-{{ task.pk }}">{{ task.title }}</button>
-          <p class="row-meta">
-            <span>{{ task.get_status_display }}</span>
-            {% if task.claimed_by %}<span>Mined by @{{ task.claimed_by.username }}</span>{% else %}<span>In the open pool</span>{% endif %}
-            {% if task.is_blocked %}<span class="flag flag-danger">Blocked</span>{% endif %}
-            {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
-            {% if task.dissolved_count %}<span class="flag flag-danger">Returned to pool {{ task.dissolved_count }}x</span>{% endif %}
-          </p>
-        </div>
-        <span class="row-figs mono">
-          {% include 'home/partials/_prio.html' with p=task.priority label=task.get_priority_display %}
-          <span>{{ task.effort_points }} pts</span>
-          {% if task.due_date %}<span class="due{% if task.due_date < today and task.status != 'COMPLETED' %} is-late{% endif %}">{{ task.due_date|date:"M j" }}</span>{% endif %}
-        </span>
-        <div class="row-action">
-          {% if task.status == 'IN_REVIEW' %}
-          <button type="button" class="btn btn-sm" data-open-drawer="tpl-task-{{ task.pk }}">Review</button>
-          {% endif %}
-        </div>
-      </li>
+        <ul class="rows">
+          {% for task in group.list %}
+          <li class="row" id="task-{{ task.pk }}" data-task-gate="{{ group.grouper.pk }}" data-task-status="{{ task.status|lower }}" data-task-blocked="{% if task.is_blocked %}1{% else %}0{% endif %}">
+            <span class="row-glyph">{% include 'home/partials/_stat.html' with s=task.status label=task.get_status_display %}</span>
+            <div class="row-main">
+              <button type="button" class="row-title{% if task.status == 'COMPLETED' %} is-done{% endif %}" data-open-drawer="tpl-task-{{ task.pk }}">{{ task.title }}</button>
+              <p class="row-meta">
+                <span>{{ task.get_status_display }}</span>
+                {% if task.claimed_by %}<span>Mined by @{{ task.claimed_by.username }}</span>{% else %}<span>In the open pool</span>{% endif %}
+                {% if task.is_blocked %}<span class="flag flag-danger">Blocked</span>{% endif %}
+                {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
+                {% if task.dissolved_count %}<span class="flag flag-danger">Returned to pool {{ task.dissolved_count }}x</span>{% endif %}
+              </p>
+            </div>
+            <span class="row-figs mono">
+              {% include 'home/partials/_prio.html' with p=task.priority label=task.get_priority_display %}
+              <span>{{ task.effort_points }} pts</span>
+              {% if task.due_date %}<span class="due{% if task.due_date < today and task.status != 'COMPLETED' %} is-late{% endif %}">{{ task.due_date|date:"M j" }}</span>{% endif %}
+            </span>
+            <div class="row-action">
+              {% if task.status == 'IN_REVIEW' %}
+              <button type="button" class="btn btn-sm" data-open-drawer="tpl-task-{{ task.pk }}">Review</button>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
       {% endfor %}
-    </ul>
-    {% empty %}
-    <div class="empty">
-      <h3>No tasks match this filter</h3>
-      <p>Change the status or gate above, or dispatch a new task into a gate.</p>
+      <div class="empty" id="assigner-empty-filter" style="display: none;">
+        <h3>No tasks match this filter</h3>
+        <p>Change the status or gate above, or dispatch a new task into a gate.</p>
+      </div>
     </div>
-    {% endfor %}
   </section>
   {% endif %}
 </div>
@@ -195,14 +198,20 @@
       <textarea class="textarea" name="description" id="task-desc" rows="4" placeholder="Context, specs and the definition of done."></textarea>
     </div>
 
+    <div class="field">
+      <label for="task-links">Related links <small class="faint">(optional, one URL per line)</small></label>
+      <textarea class="textarea" name="initial_links" id="task-links" rows="2" placeholder="https://github.com/..., Figma, Jira, Docs specs..."></textarea>
+    </div>
+
     <div><button type="submit" class="btn">Dispatch task</button></div>
   </form>
 </template>
 {% endif %}
 
-{% for task in tasks %}
+{% for task in all_tasks %}
 <template id="tpl-task-{{ task.pk }}" data-title="{{ task.title }}" data-kicker="G{{ task.gate.order }}  {{ task.gate.name|gate_title }}">
   {% include 'home/partials/_task_facts.html' %}
+  {% include 'home/partials/_task_links.html' %}
 
   {% if task.is_blocked %}
   <section class="sheet-section">

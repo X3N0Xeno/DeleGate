@@ -57,9 +57,12 @@ a:hover { text-decoration: underline; }
    App shell
    -------------------------------------------------------------------------- */
 .app {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   min-height: 100vh;
+  transition: grid-template-columns var(--dur-slow) var(--ease);
 }
 
 .sidebar {
@@ -73,6 +76,22 @@ a:hover { text-decoration: underline; }
   backdrop-filter: blur(16px) saturate(1.3);
   overflow-y: auto;
   z-index: 30;
+  transition: transform var(--dur-slow) var(--ease), width var(--dur-slow) var(--ease), padding var(--dur-slow) var(--ease), opacity var(--dur-slow) var(--ease);
+}
+
+/* Desktop sidebar collapsed state: gives full width to the workstation board */
+body.sidebar-collapsed .app {
+  grid-template-columns: 0px minmax(0, 1fr);
+}
+body.sidebar-collapsed .sidebar {
+  transform: translateX(-100%);
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-right-color: transparent;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
 .brand {
@@ -141,7 +160,11 @@ a:hover { text-decoration: underline; }
 }
 .crumb-sep { color: var(--ink-3); }
 
-.nav-toggle { display: none; }
+.nav-toggle {
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
 
 .page { width: 100%; max-width: 1360px; margin: 0 auto; padding: 36px var(--gutter) 96px; }
 .page-narrow { max-width: 920px; }
@@ -160,19 +183,24 @@ a:hover { text-decoration: underline; }
 @media (max-width: 900px) {
   :root { --gutter: 20px; }
 
-  .app { grid-template-columns: minmax(0, 1fr); }
+  .app { grid-template-columns: minmax(0, 1fr) !important; }
 
   .sidebar {
     position: fixed; inset: 0 auto 0 0;
-    width: min(300px, 86vw); height: 100%;
+    width: min(300px, 86vw) !important; height: 100%;
     background: var(--bg);
-    transform: translateX(-100%);
+    transform: translateX(-100%) !important;
     transition: transform var(--dur-slow) var(--ease);
     z-index: 60;
+    opacity: 1 !important;
+    pointer-events: none;
   }
-  body.nav-open .sidebar { transform: none; }
+  body.nav-open .sidebar {
+    transform: none !important;
+    pointer-events: auto;
+    padding: 20px 14px 20px 18px !important;
+  }
   body.nav-open .nav-scrim { opacity: 1; pointer-events: auto; }
 
-  .nav-toggle { display: inline-grid; }
   .page { padding-top: 28px; }
 }

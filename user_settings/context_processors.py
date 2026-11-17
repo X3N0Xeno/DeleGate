@@ -17,12 +17,21 @@ def ui(request):
     if user is None or not user.is_authenticated:
         return ctx
 
-    prefs = UserSettings.objects.filter(user=user).values('theme', 'compact_view').first()
-    if prefs:
-        ctx['ui_theme'] = prefs['theme'] or DEFAULT_THEME
-        ctx['ui_compact'] = prefs['compact_view']
+    session = getattr(request, 'session', None)
+    prefs = session.get('dg_prefs') if session else None
+    if prefs is None:
+        prefs = UserSettings.objects.filter(user=user).values('theme', 'compact_view').first() or {'theme': DEFAULT_THEME, 'compact_view': False}
+        if session is not None:
+            session['dg_prefs'] = prefs
 
-    role = Profile.objects.filter(user=user).values_list('preferred_role', flat=True).first() or 'CLAIMANT'
+    ctx['ui_theme'] = prefs.get('theme') or DEFAULT_THEME
+    ctx['ui_compact'] = prefs.get('compact_view', False)
+
+    role = session.get('dg_role') if session else None
+    if role is None:
+        role = Profile.objects.filter(user=user).values_list('preferred_role', flat=True).first() or 'CLAIMANT'
+        if session is not None:
+            session['dg_role'] = role
     # The workspace being viewed wins over the default, so the role switch
     # shows exactly one workspace entry at a time.
     match = getattr(request, 'resolver_match', None)

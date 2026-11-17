@@ -21,6 +21,9 @@
   {% block head_extra %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
+  <div class="ambient-sky" aria-hidden="true"></div>
+  <div class="cursor-glow" aria-hidden="true"></div>
+  <div class="cursor-dot" id="cursor-dot" aria-hidden="true"></div>
   {% include 'partials/_icons.html' %}
   <a class="skip" href="#main">Skip to content</a>
 

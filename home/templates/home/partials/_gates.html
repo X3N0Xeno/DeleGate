@@ -42,7 +42,7 @@
           <button type="submit" class="btn btn-sm">Clear gate</button>
         </form>
         {% else %}
-        <button type="button" class="btn btn-sm" disabled aria-describedby="gate-hint-{{ gate.pk }}">Clear gate</button>
+        <button type="button" class="btn btn-sm is-disabled" data-toast-warning="Gate {{ gate.order }} cannot be cleared yet: Every task in this gate must be completed first." aria-disabled="true">Clear gate</button>
         <p class="hint" id="gate-hint-{{ gate.pk }}">Every task here must be completed first.</p>
         {% endif %}
       {% endif %}

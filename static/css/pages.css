@@ -6,7 +6,7 @@
    Auth: asymmetric split. A quiet statement + a live gate on the left,
    the form on the right with no card around it.
    -------------------------------------------------------------------------- */
-.auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); }
+.auth { position: relative; z-index: 1; min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); }
 
 .auth-aside {
   display: flex; flex-direction: column; justify-content: space-between; gap: 48px;

@@ -70,7 +70,7 @@
           </span>
           <div class="row-action">
             {% if user_has_active_task and not task.is_multiclaimable %}
-            <button type="button" class="btn btn-sm" disabled title="Finish or submit your active task first. Only multi-claim tasks can be stacked.">
+            <button type="button" class="btn btn-sm is-disabled" data-toast-warning="Finish or submit your active task first. Only multi-claim tasks can be stacked." aria-disabled="true">
               <svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg> Mine!
             </button>
             {% else %}
@@ -99,7 +99,7 @@
         <p class="pane-intro">These unlock on their own once the gate before them is cleared.</p>
         <ul class="rows">
           {% for task in locked_preview_tasks %}
-          <li class="row row-dim">
+          <li class="row row-dim" data-toast-info="This task is locked behind Gate {{ task.gate.order }}. It will unlock automatically once earlier gates are cleared." style="cursor: pointer;">
             <span class="row-glyph"><svg class="ico faint" aria-hidden="true"><use href="#i-lock"/></svg></span>
             <div class="row-main">
               <span class="row-title">{{ task.title }}</span>
@@ -122,19 +122,19 @@
     <aside class="pane pane-side" aria-labelledby="queue-title">
       <div class="pane-head">
         <h2 class="pane-title" id="queue-title">Your queue</h2>
-        <span class="pane-aux mono">{{ my_tasks|length }}</span>
+        <span class="pane-aux mono" id="claimant-queue-count">{{ my_tasks|length }}</span>
       </div>
 
-      <nav class="tabs" aria-label="Filter your queue">
+      <nav class="tabs" aria-label="Filter your queue" data-instant-filter="claimant-queue">
         {% for t in my_tabs_list %}
-        <a class="tab" href="?project={{ project.pk }}&amp;my_tab={{ t.key }}"{% if t.active %} aria-current="page"{% endif %}>{{ t.label }}<span class="mono">{{ t.count }}</span></a>
+        <a class="tab" href="?project={{ project.pk }}&amp;my_tab={{ t.key }}" data-filter-tab="{{ t.key }}"{% if t.active %} aria-current="page"{% endif %}>{{ t.label }}<span class="mono">{{ t.count }}</span></a>
         {% endfor %}
       </nav>
 
-      {% if my_tasks %}
-      <ul>
-        {% for task in my_tasks %}
-        <li class="row" id="task-{{ task.pk }}">
+      {% if all_my_tasks %}
+      <ul id="claimant-queue-list">
+        {% for task in all_my_tasks %}
+        <li class="row" id="task-{{ task.pk }}" data-task-status="{{ task.status|lower }}"{% if my_tab != 'all' and my_tab != task.status|lower %} style="display: none;"{% endif %}>
           <span class="row-glyph">{% include 'home/partials/_stat.html' with s=task.status label=task.get_status_display %}</span>
           <div class="row-main">
             <button type="button" class="row-title{% if task.status == 'COMPLETED' %} is-done{% endif %}" data-open-drawer="tpl-task-{{ task.pk }}">{{ task.title }}</button>
@@ -170,6 +170,10 @@
         </li>
         {% endfor %}
       </ul>
+      <div class="empty" id="claimant-queue-empty" style="{% if my_tasks %}display: none;{% endif %}">
+        <h3>No tasks in this view</h3>
+        <p>No mined tasks match the current status filter.</p>
+      </div>
       {% else %}
       <div class="empty">
         <h3>Your queue is clear</h3>
@@ -184,6 +188,7 @@
   {% for task in open_pool_tasks %}
   <template id="tpl-task-{{ task.pk }}" data-title="{{ task.title }}" data-kicker="G{{ task.gate.order }}  {{ task.gate.name|gate_title }}">
     {% include 'home/partials/_task_facts.html' %}
+    {% include 'home/partials/_task_links.html' %}
 
     {% if task.description %}
     <section class="sheet-section">
@@ -212,7 +217,7 @@
       <p class="sheet-text faint">Dispatched by @{{ task.created_by.username|default:"admin" }}</p>
       <div class="sheet-actions mt-sm">
         {% if user_has_active_task and not task.is_multiclaimable %}
-        <button type="button" class="btn" disabled>
+        <button type="button" class="btn is-disabled" data-toast-warning="Finish or submit your active task first. Only multi-claim tasks can be stacked." aria-disabled="true">
           <svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg> Mine!
         </button>
         <span class="hint">Finish or submit your active task first. Only multi-claim tasks can be stacked.</span>
@@ -227,9 +232,10 @@
   </template>
   {% endfor %}
 
-  {% for task in my_tasks %}
+  {% for task in all_my_tasks %}
   <template id="tpl-task-{{ task.pk }}" data-title="{{ task.title }}" data-kicker="G{{ task.gate.order }}  {{ task.gate.name|gate_title }}">
     {% include 'home/partials/_task_facts.html' %}
+    {% include 'home/partials/_task_links.html' %}
 
     {% if task.is_blocked %}
     <section class="sheet-section">

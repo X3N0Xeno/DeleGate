@@ -22,6 +22,8 @@ def profile_view(request):
             settings_obj, _ = UserSettings.objects.get_or_create(user=request.user)
             settings_obj.default_dashboard = role
             settings_obj.save(update_fields=['default_dashboard'])
+            request.session['dg_role'] = role
+            request.session.modified = True
         request.user.first_name = request.POST.get('first_name', request.user.first_name).strip()
         request.user.last_name = request.POST.get('last_name', request.user.last_name).strip()
         request.user.save()
@@ -29,10 +31,16 @@ def profile_view(request):
         messages.success(request, 'Profile updated successfully.')
         return redirect('user_profile:profile')
 
+    from django.db.models import Count, Q
     total_dispatched = DelegationTask.objects.filter(created_by=request.user).count()
-    total_mined = DelegationTask.objects.filter(claimed_by=request.user).count()
-    completed_mined = DelegationTask.objects.filter(claimed_by=request.user, status='COMPLETED').count()
-    active_mined = DelegationTask.objects.filter(claimed_by=request.user).exclude(status='COMPLETED').count()
+    mined_stats = DelegationTask.objects.filter(claimed_by=request.user).aggregate(
+        total=Count('id'),
+        completed=Count('id', filter=Q(status='COMPLETED')),
+        active=Count('id', filter=~Q(status='COMPLETED')),
+    )
+    total_mined = mined_stats['total'] or 0
+    completed_mined = mined_stats['completed'] or 0
+    active_mined = mined_stats['active'] or 0
     completion_rate = int((completed_mined / total_mined * 100) if total_mined > 0 else 0)
 
     return render(request, 'user_profile/profile.html', {

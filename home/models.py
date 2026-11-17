@@ -15,6 +15,8 @@ class Project(models.Model):
 
     @property
     def overall_progress(self):
+        if hasattr(self, '_overall_progress'):
+            return self._overall_progress
         total = self.tasks.count()
         if total == 0:
             return 0
@@ -47,10 +49,18 @@ class StageGate(models.Model):
 
     @property
     def total_tasks(self):
+        if hasattr(self, '_total_tasks'):
+            return self._total_tasks
+        if hasattr(self, 'total_tasks_count'):
+            return self.total_tasks_count
         return self.tasks.count()
 
     @property
     def completed_tasks(self):
+        if hasattr(self, '_completed_tasks'):
+            return self._completed_tasks
+        if hasattr(self, 'completed_tasks_count'):
+            return self.completed_tasks_count
         return self.tasks.filter(status='COMPLETED').count()
 
     @property
@@ -120,3 +130,23 @@ class TaskComment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.author.username} on {self.task.title}"
+
+
+class TaskLink(models.Model):
+    task = models.ForeignKey(DelegationTask, related_name='links', on_delete=models.CASCADE)
+    url = models.URLField(max_length=1000)
+    title = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return self.title or self.url
+
+    @property
+    def display_title(self):
+        if self.title:
+            return self.title
+        cleaned = self.url.replace('https://', '').replace('http://', '')
+        return cleaned[:40] + ('…' if len(cleaned) > 40 else '')

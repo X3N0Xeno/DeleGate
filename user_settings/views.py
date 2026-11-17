@@ -22,6 +22,9 @@ def set_theme(request):
     settings_obj, _ = UserSettings.objects.get_or_create(user=request.user)
     settings_obj.theme = theme
     settings_obj.save(update_fields=['theme'])
+    if 'dg_prefs' in request.session:
+        request.session['dg_prefs']['theme'] = theme
+        request.session.modified = True
     return JsonResponse({'ok': True, 'theme': theme})
 
 
@@ -46,6 +49,12 @@ def settings_view(request):
             # Keep profile preferred role in sync
             profile.preferred_role = settings_obj.default_dashboard
             profile.save()
+
+            if 'dg_prefs' in request.session:
+                request.session['dg_prefs']['compact_view'] = settings_obj.compact_view
+                request.session['dg_prefs']['theme'] = settings_obj.theme
+            request.session['dg_role'] = profile.preferred_role
+            request.session.modified = True
 
             messages.success(request, 'Preferences saved.')
 

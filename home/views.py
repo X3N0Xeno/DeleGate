@@ -6,8 +6,11 @@ from django.db import transaction, models
 from django.utils import timezone
 from datetime import date, timedelta
 
-from .models import Project, StageGate, DelegationTask, TaskComment
+from .models import Project, StageGate, DelegationTask, TaskComment, TaskLink
 from user_profile.routing import workspace_url_name
+
+
+_STARTER_SEEDED = False
 
 
 def ensure_starter_project(user):
@@ -16,132 +19,136 @@ def ensure_starter_project(user):
     a realistic starter project ('DeleGate Core Platform v1.0') owned by the current user
     with 3 sequential Stage Gates and realistic starter tasks.
     """
-    if Project.objects.count() == 0:
-        proj = Project.objects.create(
-            name="DeleGate Core Platform v1.0",
-            description="Mission-critical cloud delegation engine featuring Stage-Gate governance and collaborative claimant mining.",
-            owner=user,
-        )
+    global _STARTER_SEEDED
+    if _STARTER_SEEDED:
+        return
+    if Project.objects.exists():
+        _STARTER_SEEDED = True
+        return Project.objects.first()
 
-        # Gate 1: Unlocked
-        g1 = StageGate.objects.create(
-            project=proj,
-            order=1,
-            name="Gate 1: Discovery & System Architecture",
-            exit_criteria="System architecture signed off & baseline specs approved",
-            is_unlocked=True,
-            is_passed=False,
-            unlocked_at=timezone.now(),
-        )
-        DelegationTask.objects.create(
-            project=proj,
-            gate=g1,
-            title="Design Stage-Gate Data Schema & Locking Invariants",
-            description="Specify database constraints, gate readiness triggers, and atomic claim transactions.",
-            created_by=user,
-            priority="HIGH",
-            effort_points=5,
-            status="OPEN",
-            is_multiclaimable=False,
-            due_date=timezone.localdate() + timedelta(days=3),
-        )
-        DelegationTask.objects.create(
-            project=proj,
-            gate=g1,
-            title="Wireframe Claimant Acquisition Pool & Visual Stepper",
-            description="Create high-fidelity zen component mockups for live mining cards and stepper indicators.",
-            created_by=user,
-            priority="MED",
-            effort_points=3,
-            status="OPEN",
-            is_multiclaimable=True,
-            due_date=timezone.localdate() + timedelta(days=4),
-        )
-        DelegationTask.objects.create(
-            project=proj,
-            gate=g1,
-            title="Product Requirements & Scope Alignment",
-            description="Synthesize stakeholder objectives into verifiable exit criteria.",
-            created_by=user,
-            claimed_by=user,
-            priority="LOW",
-            effort_points=2,
-            status="COMPLETED",
-            is_multiclaimable=False,
-            due_date=timezone.localdate() - timedelta(days=1),
-            claimed_at=timezone.now(),
-        )
+    proj = Project.objects.create(
+        name="DeleGate Core Platform v1.0",
+        description="Mission-critical cloud delegation engine featuring Stage-Gate governance and collaborative claimant mining.",
+        owner=user,
+    )
 
-        # Gate 2: Locked behind Gate 1
-        g2 = StageGate.objects.create(
-            project=proj,
-            order=2,
-            name="Gate 2: Engine & API Execution",
-            exit_criteria="All core endpoints tested with 100% contract compliance",
-            is_unlocked=False,
-            is_passed=False,
-        )
-        DelegationTask.objects.create(
-            project=proj,
-            gate=g2,
-            title="Build Concurrency-Safe Mining & Unlock Controller",
-            description="Implement atomic status transitions to prevent race conditions during peak mining.",
-            created_by=user,
-            priority="CRIT",
-            effort_points=8,
-            status="OPEN",
-            is_multiclaimable=False,
-            due_date=timezone.localdate() + timedelta(days=7),
-        )
-        DelegationTask.objects.create(
-            project=proj,
-            gate=g2,
-            title="Integrate Gate Sign-off Workflow & Cascade Unlocks",
-            description="Automate sequential unlocking of Gate N+1 upon approval of Gate N.",
-            created_by=user,
-            priority="HIGH",
-            effort_points=5,
-            status="OPEN",
-            is_multiclaimable=True,
-            due_date=timezone.localdate() + timedelta(days=9),
-        )
+    # Gate 1: Unlocked
+    g1 = StageGate.objects.create(
+        project=proj,
+        order=1,
+        name="Gate 1: Discovery & System Architecture",
+        exit_criteria="System architecture signed off & baseline specs approved",
+        is_unlocked=True,
+        is_passed=False,
+        unlocked_at=timezone.now(),
+    )
+    DelegationTask.objects.create(
+        project=proj,
+        gate=g1,
+        title="Design Stage-Gate Data Schema & Locking Invariants",
+        description="Specify database constraints, gate readiness triggers, and atomic claim transactions.",
+        created_by=user,
+        priority="HIGH",
+        effort_points=5,
+        status="OPEN",
+        is_multiclaimable=False,
+        due_date=timezone.localdate() + timedelta(days=3),
+    )
+    DelegationTask.objects.create(
+        project=proj,
+        gate=g1,
+        title="Wireframe Claimant Acquisition Pool & Visual Stepper",
+        description="Create high-fidelity zen component mockups for live mining cards and stepper indicators.",
+        created_by=user,
+        priority="MED",
+        effort_points=3,
+        status="OPEN",
+        is_multiclaimable=True,
+        due_date=timezone.localdate() + timedelta(days=4),
+    )
+    DelegationTask.objects.create(
+        project=proj,
+        gate=g1,
+        title="Product Requirements & Scope Alignment",
+        description="Synthesize stakeholder objectives into verifiable exit criteria.",
+        created_by=user,
+        claimed_by=user,
+        priority="LOW",
+        effort_points=2,
+        status="COMPLETED",
+        is_multiclaimable=False,
+        due_date=timezone.localdate() - timedelta(days=1),
+        claimed_at=timezone.now(),
+    )
 
-        # Gate 3: Locked behind Gate 2
-        g3 = StageGate.objects.create(
-            project=proj,
-            order=3,
-            name="Gate 3: Security Audit & Production Launch",
-            exit_criteria="Penetration testing cleared & monitoring alerts configured",
-            is_unlocked=False,
-            is_passed=False,
-        )
-        DelegationTask.objects.create(
-            project=proj,
-            gate=g3,
-            title="Execute Role-Based Access Boundary & Secret Audits",
-            description="Verify permissions isolation between claimants, assigners, and system administrators.",
-            created_by=user,
-            priority="HIGH",
-            effort_points=5,
-            status="OPEN",
-            is_multiclaimable=False,
-            due_date=timezone.localdate() + timedelta(days=14),
-        )
-        DelegationTask.objects.create(
-            project=proj,
-            gate=g3,
-            title="Deploy Production Topology & Health Checks",
-            description="Configure telemetry dashboards, error rate alerting, and load-balancer probes.",
-            created_by=user,
-            priority="MED",
-            effort_points=3,
-            status="OPEN",
-            is_multiclaimable=False,
-            due_date=timezone.localdate() + timedelta(days=16),
-        )
-        return proj
+    # Gate 2: Locked behind Gate 1
+    g2 = StageGate.objects.create(
+        project=proj,
+        order=2,
+        name="Gate 2: Engine & API Execution",
+        exit_criteria="All core endpoints tested with 100% contract compliance",
+        is_unlocked=False,
+        is_passed=False,
+    )
+    DelegationTask.objects.create(
+        project=proj,
+        gate=g2,
+        title="Build Concurrency-Safe Mining & Unlock Controller",
+        description="Implement atomic status transitions to prevent race conditions during peak mining.",
+        created_by=user,
+        priority="CRIT",
+        effort_points=8,
+        status="OPEN",
+        is_multiclaimable=False,
+        due_date=timezone.localdate() + timedelta(days=7),
+    )
+    DelegationTask.objects.create(
+        project=proj,
+        gate=g2,
+        title="Integrate Gate Sign-off Workflow & Cascade Unlocks",
+        description="Automate sequential unlocking of Gate N+1 upon approval of Gate N.",
+        created_by=user,
+        priority="HIGH",
+        effort_points=5,
+        status="OPEN",
+        is_multiclaimable=True,
+        due_date=timezone.localdate() + timedelta(days=9),
+    )
 
-    return Project.objects.first()
+    # Gate 3: Locked behind Gate 2
+    g3 = StageGate.objects.create(
+        project=proj,
+        order=3,
+        name="Gate 3: Security Audit & Production Launch",
+        exit_criteria="Penetration testing cleared & monitoring alerts configured",
+        is_unlocked=False,
+        is_passed=False,
+    )
+    DelegationTask.objects.create(
+        project=proj,
+        gate=g3,
+        title="Execute Role-Based Access Boundary & Secret Audits",
+        description="Verify permissions isolation between claimants, assigners, and system administrators.",
+        created_by=user,
+        priority="HIGH",
+        effort_points=5,
+        status="OPEN",
+        is_multiclaimable=False,
+        due_date=timezone.localdate() + timedelta(days=14),
+    )
+    DelegationTask.objects.create(
+        project=proj,
+        gate=g3,
+        title="Deploy Production Topology & Health Checks",
+        description="Configure telemetry dashboards, error rate alerting, and load-balancer probes.",
+        created_by=user,
+        priority="MED",
+        effort_points=3,
+        status="OPEN",
+        is_multiclaimable=False,
+        due_date=timezone.localdate() + timedelta(days=16),
+    )
+    return proj
 
 
 @login_required
@@ -165,10 +172,10 @@ def claimant_dashboard(request):
     - Claimant's personal execution queue with progress notes & submission for manager review
     """
     ensure_starter_project(request.user)
-    projects = Project.objects.all().order_by('-created_at')
+    projects = list(Project.objects.all().order_by('-created_at'))
 
     project_id = request.GET.get('project')
-    project = projects.filter(pk=project_id).first() if project_id else projects.first()
+    project = next((p for p in projects if str(p.pk) == str(project_id)), projects[0]) if projects else None
 
     if not project:
         return render(request, 'home/claimant_dashboard.html', {
@@ -176,62 +183,67 @@ def claimant_dashboard(request):
             'project': None,
         })
 
-    gates = project.gates.all().prefetch_related('tasks')
+    gates = list(project.gates.annotate(
+        total_tasks_count=models.Count('tasks'),
+        completed_tasks_count=models.Count('tasks', filter=models.Q(tasks__status='COMPLETED')),
+    ).prefetch_related('tasks'))
 
-    # Check if user already has an active task (across any project)
-    user_active_tasks = DelegationTask.objects.filter(
+    tot_tasks = sum(g.total_tasks for g in gates)
+    comp_tasks = sum(g.completed_tasks for g in gates)
+    project._overall_progress = int(round((comp_tasks / tot_tasks) * 100)) if tot_tasks > 0 else 0
+
+    # Check if user already has an active task (single query)
+    user_active_count = DelegationTask.objects.filter(
         claimed_by=request.user,
         status__in=['CLAIMED', 'IN_PROGRESS', 'IN_REVIEW']
-    )
-    user_has_active_task = user_active_tasks.exists()
-    user_active_count = user_active_tasks.count()
+    ).count()
+    user_has_active_task = user_active_count > 0
 
     # Live open tasks in unlocked gates (status=OPEN and unclaimed; never COMPLETED)
-    open_pool_tasks = DelegationTask.objects.filter(
+    open_pool_tasks = list(DelegationTask.objects.filter(
         project=project,
         gate__is_unlocked=True,
         status='OPEN',
         claimed_by__isnull=True,
-    ).select_related('gate', 'created_by').order_by('-priority', 'created_at')
+    ).select_related('gate', 'created_by').prefetch_related('links').order_by('-priority', 'created_at'))
 
     # Locked upcoming tasks
-    locked_preview_tasks = DelegationTask.objects.filter(
+    locked_preview_tasks = list(DelegationTask.objects.filter(
         project=project,
         gate__is_unlocked=False,
-    ).select_related('gate', 'created_by').order_by('gate__order', 'created_at')
+    ).select_related('gate', 'created_by').order_by('gate__order', 'created_at'))
 
-    # Claimant's own mined tasks
-    my_tasks_qs = DelegationTask.objects.filter(
+    # Claimant's own mined tasks (evaluated once in memory for all tabs and KPIs)
+    all_my_tasks = list(DelegationTask.objects.filter(
         project=project,
         claimed_by=request.user,
-    ).select_related('gate', 'created_by').prefetch_related('comments__author').order_by('-created_at')
+    ).select_related('gate', 'created_by').prefetch_related('comments__author', 'links').order_by('-created_at'))
+
+    # In-memory tab counts & KPIs (0 extra database queries)
+    my_counts = {
+        'all': len(all_my_tasks),
+        'claimed': sum(1 for t in all_my_tasks if t.status == 'CLAIMED'),
+        'in_progress': sum(1 for t in all_my_tasks if t.status == 'IN_PROGRESS'),
+        'in_review': sum(1 for t in all_my_tasks if t.status == 'IN_REVIEW'),
+        'completed': sum(1 for t in all_my_tasks if t.status == 'COMPLETED'),
+    }
 
     my_tab = request.GET.get('my_tab', 'all')
     if my_tab == 'claimed':
-        my_tasks = my_tasks_qs.filter(status='CLAIMED')
+        my_tasks = [t for t in all_my_tasks if t.status == 'CLAIMED']
     elif my_tab == 'in_progress':
-        my_tasks = my_tasks_qs.filter(status='IN_PROGRESS')
+        my_tasks = [t for t in all_my_tasks if t.status == 'IN_PROGRESS']
     elif my_tab == 'in_review':
-        my_tasks = my_tasks_qs.filter(status='IN_REVIEW')
+        my_tasks = [t for t in all_my_tasks if t.status == 'IN_REVIEW']
     elif my_tab == 'completed':
-        my_tasks = my_tasks_qs.filter(status='COMPLETED')
+        my_tasks = [t for t in all_my_tasks if t.status == 'COMPLETED']
     else:
-        my_tasks = my_tasks_qs
+        my_tasks = all_my_tasks
 
-    # KPI counts
-    kpi_open = open_pool_tasks.count()
-    kpi_my_active = my_tasks_qs.exclude(status='COMPLETED').count()
-    kpi_points = sum(my_tasks_qs.exclude(status='COMPLETED').values_list('effort_points', flat=True))
-    kpi_completed = my_tasks_qs.filter(status='COMPLETED').count()
-
-    # Mined tab counts
-    my_counts = {
-        'all': my_tasks_qs.count(),
-        'claimed': my_tasks_qs.filter(status='CLAIMED').count(),
-        'in_progress': my_tasks_qs.filter(status='IN_PROGRESS').count(),
-        'in_review': my_tasks_qs.filter(status='IN_REVIEW').count(),
-        'completed': my_tasks_qs.filter(status='COMPLETED').count(),
-    }
+    kpi_open = len(open_pool_tasks)
+    kpi_my_active = sum(1 for t in all_my_tasks if t.status != 'COMPLETED')
+    kpi_points = sum(t.effort_points for t in all_my_tasks if t.status != 'COMPLETED')
+    kpi_completed = my_counts['completed']
 
     my_tabs_list = [
         {'key': 'all', 'label': 'All Mined', 'count': my_counts['all'], 'active': (my_tab == 'all')},
@@ -248,6 +260,7 @@ def claimant_dashboard(request):
         'open_pool_tasks': open_pool_tasks,
         'locked_preview_tasks': locked_preview_tasks,
         'my_tasks': my_tasks,
+        'all_my_tasks': all_my_tasks,
         'my_tab': my_tab,
         'my_tabs_list': my_tabs_list,
         'user_has_active_task': user_has_active_task,
@@ -271,10 +284,10 @@ def assigner_dashboard(request):
     - Gate-grouped task & claimant oversight board with Manager Review (Approve or Return/Dissolve)
     """
     ensure_starter_project(request.user)
-    projects = Project.objects.all().order_by('-created_at')
+    projects = list(Project.objects.all().order_by('-created_at'))
 
     project_id = request.GET.get('project')
-    project = projects.filter(pk=project_id).first() if project_id else projects.first()
+    project = next((p for p in projects if str(p.pk) == str(project_id)), projects[0]) if projects else None
 
     if not project:
         return render(request, 'home/assigner_dashboard.html', {
@@ -306,43 +319,59 @@ def assigner_dashboard(request):
                 status='OPEN',
                 is_multiclaimable=is_multiclaimable,
             )
+            initial_links = request.POST.get('initial_links', '').strip()
+            if initial_links:
+                for line in initial_links.splitlines():
+                    raw = line.strip()
+                    if raw:
+                        if not raw.startswith(('http://', 'https://')):
+                            raw = 'https://' + raw
+                        TaskLink.objects.create(task=task, url=raw)
             multi_note = " [Multi-Claim]" if is_multiclaimable else ""
             messages.success(request, f'Dispatched "{task.title}" ({task.effort_points} pts){multi_note} into {gate.name}.')
             return redirect(f"/home/assign/?project={project.pk}")
 
-    gates = project.gates.all().prefetch_related('tasks__claimed_by', 'tasks__created_by')
+    gates = list(project.gates.annotate(
+        total_tasks_count=models.Count('tasks'),
+        completed_tasks_count=models.Count('tasks', filter=models.Q(tasks__status='COMPLETED')),
+    ).prefetch_related('tasks__claimed_by', 'tasks__created_by'))
+
+    tot_tasks = sum(g.total_tasks for g in gates)
+    comp_tasks = sum(g.completed_tasks for g in gates)
+    project._overall_progress = int(round((comp_tasks / tot_tasks) * 100)) if tot_tasks > 0 else 0
 
     # Task stream filters
     status_filter = request.GET.get('status', 'all')
     gate_filter = request.GET.get('gate', 'all')
 
     # Ordered by gate first so the template can group the board under each gate.
-    tasks_qs = DelegationTask.objects.filter(project=project).select_related('gate', 'claimed_by', 'created_by').prefetch_related('comments__author').order_by('gate__order', '-created_at')
+    all_tasks = list(DelegationTask.objects.filter(project=project).select_related('gate', 'claimed_by', 'created_by').prefetch_related('comments__author', 'links').order_by('gate__order', '-created_at'))
 
     if gate_filter != 'all':
-        tasks_qs = tasks_qs.filter(gate_id=gate_filter)
+        tasks_for_counts = [t for t in all_tasks if str(t.gate_id) == str(gate_filter)]
+    else:
+        tasks_for_counts = all_tasks
 
     counts = {
-        'all': tasks_qs.count(),
-        'open': tasks_qs.filter(status='OPEN').count(),
-        'mined': tasks_qs.filter(status__in=['CLAIMED', 'IN_PROGRESS']).count(),
-        'review': tasks_qs.filter(status='IN_REVIEW').count(),
-        'blocked': tasks_qs.filter(is_blocked=True).count(),
-        'completed': tasks_qs.filter(status='COMPLETED').count(),
+        'all': len(tasks_for_counts),
+        'open': sum(1 for t in tasks_for_counts if t.status == 'OPEN'),
+        'mined': sum(1 for t in tasks_for_counts if t.status in ('CLAIMED', 'IN_PROGRESS')),
+        'review': sum(1 for t in tasks_for_counts if t.status == 'IN_REVIEW'),
+        'blocked': sum(1 for t in tasks_for_counts if t.is_blocked),
+        'completed': sum(1 for t in tasks_for_counts if t.status == 'COMPLETED'),
     }
 
+    filtered_tasks = tasks_for_counts
     if status_filter == 'open':
-        filtered_tasks = tasks_qs.filter(status='OPEN')
+        filtered_tasks = [t for t in filtered_tasks if t.status == 'OPEN']
     elif status_filter == 'mined':
-        filtered_tasks = tasks_qs.filter(status__in=['CLAIMED', 'IN_PROGRESS'])
+        filtered_tasks = [t for t in filtered_tasks if t.status in ('CLAIMED', 'IN_PROGRESS')]
     elif status_filter == 'review':
-        filtered_tasks = tasks_qs.filter(status='IN_REVIEW')
+        filtered_tasks = [t for t in filtered_tasks if t.status == 'IN_REVIEW']
     elif status_filter == 'blocked':
-        filtered_tasks = tasks_qs.filter(is_blocked=True)
+        filtered_tasks = [t for t in filtered_tasks if t.is_blocked]
     elif status_filter == 'completed':
-        filtered_tasks = tasks_qs.filter(status='COMPLETED')
-    else:
-        filtered_tasks = tasks_qs
+        filtered_tasks = [t for t in filtered_tasks if t.status == 'COMPLETED']
 
     filter_tabs = [
         {'key': 'all', 'label': 'All Tasks', 'count': counts['all'], 'active': (status_filter == 'all')},
@@ -358,6 +387,7 @@ def assigner_dashboard(request):
         'project': project,
         'gates': gates,
         'tasks': filtered_tasks,
+        'all_tasks': all_tasks,
         'status_filter': status_filter,
         'gate_filter': gate_filter,
         'filter_tabs': filter_tabs,
@@ -565,6 +595,43 @@ def task_add_comment(request, pk):
     if body:
         TaskComment.objects.create(task=task, author=request.user, body=body)
         messages.success(request, 'Comment added.')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or 'home')
+
+
+@login_required
+@require_POST
+def task_add_link(request, pk):
+    """
+    Attach an external URL / tracking link to a task ticket.
+    """
+    task = get_object_or_404(DelegationTask, pk=pk)
+    url = request.POST.get('url', '').strip()
+    title = request.POST.get('title', '').strip()
+
+    if url:
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        link = TaskLink.objects.create(task=task, url=url, title=title)
+        messages.success(request, f'Added link "{link.display_title}" to ticket.')
+    else:
+        messages.error(request, 'Please provide a valid URL.')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or 'home')
+
+
+@login_required
+@require_POST
+def task_delete_link(request, link_pk):
+    """
+    Remove an attached link from a task ticket.
+    """
+    link = get_object_or_404(TaskLink, pk=link_pk)
+    title = link.display_title
+    link.delete()
+    messages.info(request, f'Removed link "{title}" from ticket.')
 
     referer = request.META.get('HTTP_REFERER')
     return redirect(referer or 'home')

@@ -23,6 +23,9 @@
 @property --ink-3            { syntax: "<color>"; inherits: true; initial-value: #4B5D52; }
 @property --signal-ink       { syntax: "<color>"; inherits: true; initial-value: #6B5016; }
 @property --danger           { syntax: "<color>"; inherits: true; initial-value: #8E2F23; }
+@property --sun-x            { syntax: "<percentage>"; inherits: true; initial-value: 78%; }
+@property --sun-y            { syntax: "<percentage>"; inherits: true; initial-value: -12%; }
+@property --sun-angle        { syntax: "<angle>"; inherits: true; initial-value: 175deg; }
 
 :root {
   /* Fallbacks for a browser with scripting off: Aether Atrium, solar day */
@@ -30,6 +33,9 @@
   --text-primary: #14231C; --text-secondary: #3F5247;
   --accent-primary: #1F5E45; --accent-solar: #C88A2B; --ambient-sky-glow: #FBE8B8;
   --on-accent: #FFFFFF;
+  --sun-x: 78%;
+  --sun-y: -12%;
+  --sun-angle: 175deg;
 
   /* Semantic tokens. --ink-3, --signal-ink and --danger are solved by circadian.js
      (contrast-checked at every hour); the values here are the no-script fallback. */
@@ -65,19 +71,204 @@
     --bg-canvas 1.2s ease, --bg-surface 1.2s ease, --bg-elevated 1.2s ease,
     --border-hairline 1.2s ease, --text-primary 1.2s ease, --text-secondary 1.2s ease,
     --accent-primary 1.2s ease, --accent-solar 1.2s ease, --ambient-sky-glow 1.2s ease,
-    --ink-3 1.2s ease, --signal-ink 1.2s ease, --danger 1.2s ease;
+    --ink-3 1.2s ease, --signal-ink 1.2s ease, --danger 1.2s ease,
+    --sun-x 1.2s ease, --sun-y 1.2s ease;
 }
 @media (prefers-reduced-motion: reduce) {
   :root.sun-ready { transition: none; }
 }
 
-/* ---- Ambient sky: a soft wash from the top right, fixed behind everything -- */
-body {
+/* ---- Ambient sky: circadian atmospheric gradient following solar time ----- */
+.ambient-sky {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
   background:
-    radial-gradient(70rem 38rem at 92% -12%, color-mix(in srgb, var(--ambient-sky-glow) 34%, transparent), transparent 70%),
-    radial-gradient(50rem 30rem at -8% 108%, color-mix(in srgb, var(--accent-primary) 6%, transparent), transparent 70%),
-    var(--bg);
-  background-attachment: fixed;
+    radial-gradient(78rem 45rem at var(--sun-x, 78%) var(--sun-y, -12%), color-mix(in srgb, var(--ambient-sky-glow) 36%, transparent), transparent 72%),
+    radial-gradient(56rem 36rem at calc(100% - var(--sun-x, 78%)) calc(100% - var(--sun-y, -12%)), color-mix(in srgb, var(--accent-primary) 8%, transparent), transparent 70%),
+    radial-gradient(65rem 40rem at 50% 50%, color-mix(in srgb, var(--accent-solar) 5%, transparent), transparent 65%);
+  transition: opacity 1.2s ease, filter 1.2s ease;
+}
+
+:root[data-phase="dawn"] .ambient-sky {
+  background:
+    radial-gradient(74rem 48rem at var(--sun-x, 80%) var(--sun-y, 60%), color-mix(in srgb, var(--ambient-sky-glow) 44%, transparent), transparent 75%),
+    radial-gradient(55rem 38rem at 14% 14%, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 70%),
+    radial-gradient(80rem 26rem at 50% 100%, color-mix(in srgb, var(--accent-solar) 14%, transparent), transparent 70%),
+    linear-gradient(var(--sun-angle, 138deg), color-mix(in srgb, var(--ambient-sky-glow) 10%, transparent) 0%, transparent 60%);
+}
+
+:root[data-phase="day"] .ambient-sky {
+  background:
+    radial-gradient(82rem 44rem at var(--sun-x, 52%) var(--sun-y, -14%), color-mix(in srgb, var(--ambient-sky-glow) 36%, transparent), transparent 72%),
+    radial-gradient(62rem 34rem at 18% -8%, color-mix(in srgb, var(--accent-primary) 8%, transparent), transparent 70%),
+    radial-gradient(90rem 40rem at 50% 0%, color-mix(in srgb, var(--accent-solar) 6%, transparent), transparent 65%),
+    linear-gradient(180deg, color-mix(in srgb, var(--ambient-sky-glow) 8%, transparent) 0%, transparent 45%);
+}
+
+:root[data-phase="golden"] .ambient-sky {
+  background:
+    radial-gradient(76rem 48rem at var(--sun-x, 20%) var(--sun-y, 56%), color-mix(in srgb, var(--ambient-sky-glow) 46%, transparent), transparent 75%),
+    radial-gradient(60rem 40rem at 88% 18%, color-mix(in srgb, var(--accent-solar) 18%, transparent), transparent 72%),
+    radial-gradient(68rem 32rem at 45% 95%, color-mix(in srgb, var(--accent-primary) 9%, transparent), transparent 70%),
+    linear-gradient(var(--sun-angle, 240deg), color-mix(in srgb, var(--accent-solar) 14%, transparent) 0%, color-mix(in srgb, var(--ambient-sky-glow) 8%, transparent) 35%, transparent 70%);
+}
+
+:root[data-phase="night"] .ambient-sky {
+  background:
+    radial-gradient(68rem 40rem at 50% -14%, color-mix(in srgb, var(--ambient-sky-glow) 28%, transparent), transparent 75%),
+    radial-gradient(58rem 42rem at 92% 106%, color-mix(in srgb, var(--accent-primary) 22%, transparent), transparent 72%),
+    radial-gradient(50rem 36rem at 8% 96%, color-mix(in srgb, var(--accent-solar) 15%, transparent), transparent 70%),
+    radial-gradient(100rem 60rem at 50% 50%, transparent 40%, color-mix(in srgb, var(--bg-canvas) 80%, #000) 100%);
+}
+
+/* Fallback base sky on body */
+body {
+  background: var(--bg);
+}
+
+/* ---- Cursor spotlight: subtle ambient gradient following the pointer ----- */
+.cursor-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 35;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    140px circle at var(--cursor-x, -1000px) var(--cursor-y, -1000px),
+    color-mix(in srgb, var(--accent) 7.5%, transparent) 0%,
+    color-mix(in srgb, var(--ambient-sky-glow) 3.5%, transparent) 40%,
+    transparent 75%
+  );
+}
+
+body.has-cursor .cursor-glow {
+  opacity: 1;
+}
+
+:root[data-phase="dawn"] .cursor-glow {
+  background: radial-gradient(
+    140px circle at var(--cursor-x, -1000px) var(--cursor-y, -1000px),
+    color-mix(in srgb, var(--ambient-sky-glow) 9%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 5%, transparent) 40%,
+    transparent 75%
+  );
+}
+
+:root[data-phase="day"] .cursor-glow {
+  background: radial-gradient(
+    140px circle at var(--cursor-x, -1000px) var(--cursor-y, -1000px),
+    color-mix(in srgb, var(--accent) 7%, transparent) 0%,
+    color-mix(in srgb, var(--ambient-sky-glow) 3.5%, transparent) 40%,
+    transparent 75%
+  );
+}
+
+:root[data-phase="golden"] .cursor-glow {
+  background: radial-gradient(
+    140px circle at var(--cursor-x, -1000px) var(--cursor-y, -1000px),
+    color-mix(in srgb, var(--signal) 8%, transparent) 0%,
+    color-mix(in srgb, var(--ambient-sky-glow) 4%, transparent) 40%,
+    transparent 75%
+  );
+}
+
+:root[data-phase="night"] .cursor-glow {
+  background: radial-gradient(
+    150px circle at var(--cursor-x, -1000px) var(--cursor-y, -1000px),
+    color-mix(in srgb, var(--accent) 13%, transparent) 0%,
+    color-mix(in srgb, var(--ambient-sky-glow) 5.5%, transparent) 40%,
+    transparent 75%
+  );
+}
+
+/* ---- Solarpunk dot cursor ------------------------------------------------- */
+.cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0;
+  will-change: transform;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--bg-surface) 85%, transparent),
+    0 0 8px color-mix(in srgb, var(--accent) 50%, transparent);
+  transition:
+    opacity 0.2s ease,
+    width 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    margin 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+body.has-cursor .cursor-dot {
+  opacity: 1;
+}
+
+/* Hovering over clickable items: dot expands to an interactive targeting ring */
+body.cursor-is-hover .cursor-dot {
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border: 1.5px solid var(--accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--bg-surface) 60%, transparent),
+    0 0 10px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* Clicking / active state */
+body.cursor-is-down .cursor-dot {
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  background: var(--signal);
+  border: none;
+  box-shadow: 0 0 6px var(--signal);
+}
+
+/* Inside text fields: native text cursor handles caret */
+body.cursor-is-text .cursor-dot {
+  opacity: 0;
+}
+
+/* Replace OS cursor with the dot on desktop hover environments */
+@media (hover: hover) {
+  body.has-cursor,
+  body.has-cursor a,
+  body.has-cursor button,
+  body.has-cursor [role="button"],
+  body.has-cursor [role="radio"],
+  body.has-cursor summary,
+  body.has-cursor label,
+  body.has-cursor select,
+  body.has-cursor .pill,
+  body.has-cursor .gate-pill,
+  body.has-cursor .row,
+  body.has-cursor .row-title {
+    cursor: none !important;
+  }
+
+  body.has-cursor input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+  body.has-cursor textarea,
+  body.has-cursor [contenteditable] {
+    cursor: text !important;
+  }
+}
+
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .cursor-glow, .cursor-dot { display: none !important; }
 }
 
 /* ---- Night: the glass gets a little more body so text stays crisp ---------- */

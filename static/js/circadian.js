@@ -26,26 +26,26 @@
 
   // Order: canvas, surface, elevated, hairline, text, text-2, accent, solar, glow
   var PALETTES = {
-    // Aether Atrium: alabaster and ivory, chlorophyll emerald, solar brass, dawn-peach wash
+    // Aether Atrium: sunlit ivory, lush emerald botanical, radiant brass, golden dawn
     aether: {
-      dawn:   ['#F8EFE6', '#FDF8F2', '#F2E6DA', '#E3D3C3', '#2A2420', '#5B4E46', '#1F5E45', '#C88A2B', '#F4B993'],
-      day:    ['#F7F6F0', '#FDFCF8', '#EFEEE5', '#DDDCCE', '#14231C', '#3F5247', '#1F5E45', '#C88A2B', '#FBE8B8'],
-      golden: ['#FAF0DD', '#FFF9EC', '#F3E4C6', '#E6D3AB', '#2B2216', '#5C4B33', '#1F5E45', '#C88A2B', '#F6C27A'],
-      night:  ['#0C1713', '#12211C', '#182A23', '#26382F', '#E4EFEA', '#A9BDB4', '#4ADE9B', '#E5A94C', '#1D4D3C']
+      dawn:   ['#F4F8F4', '#FFFFFF', '#EAF2EB', '#CFE2D4', '#132E22', '#3C614F', '#059669', '#D97706', '#FDE68A'],
+      day:    ['#F8FAF8', '#FFFFFF', '#EDF4EF', '#D1E3D8', '#0D261C', '#355948', '#047857', '#D97706', '#FEF3C7'],
+      golden: ['#FAF7EE', '#FFFDF7', '#F2ECD9', '#E3DAC1', '#262414', '#5A5237', '#047857', '#D97706', '#FCD34D'],
+      night:  ['#06140D', '#0C2016', '#132E20', '#1E4532', '#ECFDF5', '#A7F3D0', '#10B981', '#FBBF24', '#064E3B']
     },
-    // Terrace Canopy: unbleached linen and limestone, botanical moss, baked terracotta, sage mist
+    // Terrace Canopy: warm baked sand, rich burnt terracotta, amber ochre, smoked espresso
     terrace: {
-      dawn:   ['#F3EADC', '#FAF4E9', '#EADFCB', '#DACBB0', '#2A2218', '#5A4C3A', '#2D6A4F', '#C2593F', '#E9B79A'],
-      day:    ['#F4EFE4', '#FBF8F1', '#ECE6D6', '#DAD2BC', '#1F261E', '#48503F', '#2D6A4F', '#C2593F', '#DDE6C9'],
-      golden: ['#F6E9D6', '#FCF3E4', '#EEDDC3', '#E0CBA7', '#2D2115', '#5E4A33', '#2D6A4F', '#C2593F', '#EDB37C'],
-      night:  ['#0E1612', '#15211A', '#1B2A21', '#2A3B30', '#E6EFE7', '#AEBFB3', '#52DB98', '#E8A04A', '#24432F']
+      dawn:   ['#FBF3E8', '#FFFBF6', '#F3E5D4', '#E2CEBA', '#2E1810', '#6B4739', '#C2410C', '#B45309', '#FED7AA'],
+      day:    ['#FAF4ED', '#FFFDF9', '#F4E8DC', '#E3CFBE', '#26140B', '#614133', '#C2410C', '#B45309', '#FFEDD5'],
+      golden: ['#F9EDE0', '#FFF9F2', '#F0DDCB', '#DEC2A8', '#2E1408', '#6E3E26', '#C2410C', '#EA580C', '#FDBA74'],
+      night:  ['#160E0B', '#231712', '#33211B', '#4D3229', '#FFF7ED', '#FDBA74', '#FB923C', '#F59E0B', '#7C2D12']
     },
-    // Mist Conservatory: cool porcelain, verdigris teal, copper-amber, dew-silver hairlines
+    // Mist Conservatory: crisp glacial mist, electric arctic cyan, titanium steel, abyssal navy
     mist: {
-      dawn:   ['#EBF0F0', '#F6F9F8', '#E0E8E8', '#CFDADA', '#16262A', '#44585C', '#1D5B5E', '#B87333', '#F0C9B0'],
-      day:    ['#EEF3F3', '#FAFCFC', '#E3EBEB', '#D2DCDD', '#12242A', '#3F545A', '#1D5B5E', '#B87333', '#CFE6E6'],
-      golden: ['#F2EDE4', '#FBF8F2', '#E8E0D2', '#D9CDB8', '#22262A', '#4E5558', '#1D5B5E', '#B87333', '#F0C49A'],
-      night:  ['#0B1618', '#112124', '#172B2F', '#223A3E', '#E3EEEE', '#A6BDBF', '#4CD9B8', '#E0A04F', '#174045']
+      dawn:   ['#EDF5FA', '#FAFCFE', '#E1EDF5', '#C8DDEB', '#0B202E', '#36566D', '#0284C7', '#6366F1', '#BAE6FD'],
+      day:    ['#F0F6FA', '#FFFFFF', '#E2EEF5', '#CBE0EC', '#081E2B', '#315166', '#0284C7', '#4F46E5', '#CFEAFC'],
+      golden: ['#EDF3F7', '#FAFCFE', '#DFE9F0', '#C5D7E3', '#101E29', '#3D5466', '#0284C7', '#8B5CF6', '#DDD6FE'],
+      night:  ['#071018', '#0E1B26', '#152737', '#203A50', '#F0F9FF', '#BAE6FD', '#38BDF8', '#818CF8', '#0369A1']
     }
   };
 
@@ -104,6 +104,39 @@
     if (h >= 8 && h < 16.5) return 'day';
     if (h >= 16.5 && h < 19.5) return 'golden';
     return 'night';
+  }
+
+  function solarCoords(h) {
+    var x, y, angle;
+    if (h >= 5 && h < 8) {
+      // Dawn (05:00 - 08:00): sunrise climbs from bottom-right (88%, 95%) to morning sky (72%, 25%)
+      var t = (h - 5) / 3;
+      x = 88 - t * 16;
+      y = 95 - t * 70;
+      angle = 115 + t * 45;
+    } else if (h >= 8 && h < 16.5) {
+      // Solar Day (08:00 - 16:30): high arch over workstation zenith
+      var t = (h - 8) / 8.5;
+      x = 72 - t * 44;
+      y = -14 + Math.pow(t - 0.47, 2) * 160;
+      angle = 160 + t * 60;
+    } else if (h >= 16.5 && h < 19.5) {
+      // Golden Hour (16:30 - 19:30): sunset descends to bottom-left (12%, 85%)
+      var t = (h - 16.5) / 3;
+      x = 28 - t * 16;
+      y = 26 + t * 59;
+      angle = 220 + t * 40;
+    } else {
+      // Night (19:30 - 05:00): lunar zenith at top center
+      x = 50;
+      y = -15;
+      angle = 0;
+    }
+    return {
+      x: Math.round(x * 10) / 10,
+      y: Math.round(y * 10) / 10,
+      angle: Math.round(angle)
+    };
   }
 
   // Nudge fg toward black or white, whichever works, until it clears `min`
@@ -175,6 +208,10 @@
     var h = currentHour();
     var palette = paletteAt(state.theme, h);
     for (var key in palette) root.style.setProperty(key, palette[key]);
+    var coords = solarCoords(h);
+    root.style.setProperty('--sun-x', coords.x + '%');
+    root.style.setProperty('--sun-y', coords.y + '%');
+    root.style.setProperty('--sun-angle', coords.angle + 'deg');
     state.hour = h;
     state.phase = state.mode === 'auto' ? phaseName(h) : state.mode;
     root.setAttribute('data-phase', state.phase);
@@ -238,7 +275,7 @@
 
   var api = {
     setTheme: setTheme, setMode: setMode, getState: getState,
-    paletteAt: paletteAt, phaseName: phaseName, contrast: contrast,
+    paletteAt: paletteAt, phaseName: phaseName, solarCoords: solarCoords, contrast: contrast,
     PALETTES: PALETTES, KEYS: KEYS, THEMES: THEME_NAMES, MODES: MODES, PREVIEW_HOUR: PREVIEW_HOUR
   };
   global.Circadian = api;

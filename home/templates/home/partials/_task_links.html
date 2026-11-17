@@ -1,0 +1,50 @@
+{# Links attached to a task ticket. Expects: task. #}
+<section class="sheet-section ticket-links-section">
+  <div class="sheet-section-head">
+    <h3 class="sheet-label">
+      <svg class="ico" aria-hidden="true" style="margin-right: 4px; vertical-align: text-bottom;"><use href="#i-link"/></svg>
+      Related links <small class="mono">({{ task.links.all|length }})</small>
+    </h3>
+  </div>
+
+  {% if task.links.all %}
+  <ul class="ticket-links-list">
+    {% for link in task.links.all %}
+    <li class="ticket-link-item">
+      <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="ticket-link-anchor" title="{{ link.url }}">
+        <svg class="ico faint" aria-hidden="true"><use href="#i-ext"/></svg>
+        <span class="ticket-link-title">{{ link.display_title }}</span>
+      </a>
+      <div class="ticket-link-actions">
+        <button type="button" class="icon-btn icon-btn-sm" data-copy-link="{{ link.url }}" aria-label="Copy link">
+          <svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg>
+        </button>
+        <form method="POST" action="{% url 'task_delete_link' link.pk %}" data-reopen class="inline-form">
+          {% csrf_token %}
+          <button type="submit" class="icon-btn icon-btn-sm icon-btn-danger" aria-label="Remove link">
+            <svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>
+          </button>
+        </form>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="sheet-text faint">No tracking or reference links attached yet.</p>
+  {% endif %}
+
+  <form method="POST" action="{% url 'task_add_link' task.pk %}" data-reopen class="ticket-link-form mt-sm">
+    {% csrf_token %}
+    <div class="field-pair">
+      <div class="field" style="flex: 2;">
+        <label class="sr-only" for="link-url-{{ task.pk }}">Link URL</label>
+        <input class="input input-sm" type="url" name="url" id="link-url-{{ task.pk }}" placeholder="https://github.com/..., Figma, Jira, Docs..." required>
+      </div>
+      <div class="field" style="flex: 1.2;">
+        <label class="sr-only" for="link-title-{{ task.pk }}">Label (optional)</label>
+        <input class="input input-sm" type="text" name="title" id="link-title-{{ task.pk }}" placeholder="Label (e.g. PR #12, Specs)">
+      </div>
+      <button type="submit" class="btn btn-sm btn-ghost">+ Add link</button>
+    </div>
+  </form>
+</section>

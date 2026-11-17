@@ -51,6 +51,6 @@
 
 /* Theme previews: fixed colours so each swatch always shows its own daylight
    palette, whatever theme and hour are active. Keep in sync with circadian.js. */
-[data-swatch="aether"]  { --sw-bg: #F7F6F0; --sw-soft: #FBE8B8; --sw-accent: #1F5E45; --sw-ink: #14231C; }
-[data-swatch="terrace"] { --sw-bg: #F4EFE4; --sw-soft: #DDE6C9; --sw-accent: #2D6A4F; --sw-ink: #1F261E; }
-[data-swatch="mist"]    { --sw-bg: #EEF3F3; --sw-soft: #CFE6E6; --sw-accent: #1D5B5E; --sw-ink: #12242A; }
+[data-swatch="aether"]  { --sw-bg: #F8FAF8; --sw-soft: #D1FAE5; --sw-accent: #047857; --sw-ink: #0D261C; }
+[data-swatch="terrace"] { --sw-bg: #FAF4ED; --sw-soft: #FFEDD5; --sw-accent: #C2410C; --sw-ink: #26140B; }
+[data-swatch="mist"]    { --sw-bg: #F0F6FA; --sw-soft: #E0F2FE; --sw-accent: #0284C7; --sw-ink: #081E2B; }
