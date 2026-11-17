@@ -64,8 +64,22 @@
 
 .head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-/* Queue rows on the claimant side are tighter: they live in a narrow pane */
-.pane-side .row { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "glyph main" ". figs" ". action"; padding-left: 0; padding-right: 0; row-gap: 8px; }
+/* Queue rows on the claimant side: spacious padding and smooth rightward glide on hover */
+.pane-side .row {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "glyph main" ". figs" ". action";
+  padding: 12px 14px 12px 16px;
+  row-gap: 8px;
+  border-left: 3px solid transparent;
+  border-radius: 0 var(--r) var(--r) 0;
+  transition: transform var(--dur-fast) var(--ease), background var(--dur-fast), border-left-color var(--dur-fast), padding-left var(--dur-fast);
+}
+.pane-side .row:hover {
+  background: color-mix(in srgb, var(--sunken) 55%, transparent);
+  border-left-color: var(--accent);
+  padding-left: 22px;
+  transform: translateX(6px);
+}
 .pane-side .row-action { justify-content: flex-start; }
 
 /* --------------------------------------------------------------------------
@@ -115,7 +129,7 @@
     position: static; max-height: none; overflow: visible;
     margin-top: 56px; padding: 32px 0 0 0; border-left: 0; border-top: 1px solid var(--line);
   }
-  .pane-side .row { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "glyph main figs action"; row-gap: 4px; padding-left: 6px; padding-right: 6px; }
+  .pane-side .row { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "glyph main figs action"; row-gap: 4px; padding-left: 14px; padding-right: 14px; }
 }
 
 @media (max-width: 900px) {
