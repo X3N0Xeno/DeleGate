@@ -2,7 +2,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Profile
+from .routing import VALID_ROLES
 from home.models import DelegationTask
+from user_settings.models import UserSettings
 
 @login_required
 def profile_view(request):
@@ -12,7 +14,14 @@ def profile_view(request):
         profile.role_title = request.POST.get('role_title', profile.role_title).strip()
         profile.department = request.POST.get('department', profile.department).strip()
         profile.bio = request.POST.get('bio', profile.bio).strip()
-        profile.preferred_role = request.POST.get('preferred_role', profile.preferred_role)
+        role = request.POST.get('preferred_role', profile.preferred_role)
+        if role in VALID_ROLES:
+            profile.preferred_role = role
+            # Settings keeps its own copy of the default workspace; keep both
+            # in step so saving Settings later can't silently undo this.
+            settings_obj, _ = UserSettings.objects.get_or_create(user=request.user)
+            settings_obj.default_dashboard = role
+            settings_obj.save(update_fields=['default_dashboard'])
         request.user.first_name = request.POST.get('first_name', request.user.first_name).strip()
         request.user.last_name = request.POST.get('last_name', request.user.last_name).strip()
         request.user.save()

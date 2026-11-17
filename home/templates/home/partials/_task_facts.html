@@ -1,0 +1,18 @@
+{# Status, priority, points and due date for the top of a task drawer. Expects: task, today. #}
+<div class="sheet-section">
+  <div class="sheet-facts">
+    <span class="sheet-fact">
+      {% include 'home/partials/_stat.html' with s=task.status label=task.get_status_display %}
+      {{ task.get_status_display }}
+    </span>
+    <span class="sheet-fact">
+      {% include 'home/partials/_prio.html' with p=task.priority label=task.get_priority_display %}
+      {{ task.get_priority_display }}
+    </span>
+    <span class="sheet-fact mono">{{ task.effort_points }} pts</span>
+    {% if task.due_date %}
+    <span class="sheet-fact mono due{% if task.due_date < today and task.status != 'COMPLETED' %} is-late{% endif %}">Due {{ task.due_date|date:"M j, Y" }}</span>
+    {% endif %}
+    {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
+  </div>
+</div>

@@ -1,0 +1,29 @@
+{# Activity thread + comment form. Expects: task, placeholder. #}
+<section class="sheet-section">
+  <h3 class="sheet-label">Activity <small class="mono">{{ task.comments.count }}</small></h3>
+
+  {% if task.comments.all %}
+  <div class="thread">
+    {% for c in task.comments.all %}
+    <div>
+      <div class="comment-head">
+        <span class="comment-author">@{{ c.author.username }}</span>
+        <span class="comment-time mono">{{ c.created_at|date:"M j, H:i" }}</span>
+      </div>
+      <p class="comment-body">{{ c.body }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="sheet-text faint">Nothing here yet. Comments and review decisions will show up in this thread.</p>
+  {% endif %}
+
+  <form method="POST" action="{% url 'task_add_comment' task.pk %}" data-reopen class="sheet-stack thread-form">
+    {% csrf_token %}
+    <div class="field">
+      <label class="sr-only" for="comment-{{ task.pk }}">Comment</label>
+      <textarea class="textarea" name="body" id="comment-{{ task.pk }}" rows="2" placeholder="{{ placeholder|default:'Write an update…' }}" required></textarea>
+    </div>
+    <div><button type="submit" class="btn btn-sm btn-ghost">Post comment</button></div>
+  </form>
+</section>

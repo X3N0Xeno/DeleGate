@@ -1,463 +1,158 @@
-<!DOCTYPE html>
-<html lang="en">
+{% load static %}<!DOCTYPE html>
+<html lang="en" data-theme="{{ ui_theme|default:'kyoto' }}"{% if ui_compact %} data-density="compact"{% endif %}>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}DeleGate{% endblock %}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* ── Design Tokens ── */
-        :root {
-            --canvas: #F6F8F6;
-            --surface: #FFFFFF;
-            --surface-2: #EEF3EF;
-            --border: #E2E8E3;
-            --shadow: 0 4px 20px rgba(20, 40, 29, 0.04);
-            --shadow-md: 0 8px 30px rgba(20, 40, 29, 0.08);
-            --brand: #2D6A4F;
-            --brand-hover: #1B4332;
-            --accent: #52B788;
-            --accent-soft: #D8F3DC;
-            --amber: #D97706;
-            --critical: #C84B31;
-            --text-primary: #14281D;
-            --text-secondary: #52665A;
-            --text-muted: #8A9E94;
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
-            --radius-pill: 999px;
-            --transition: 150ms ease;
-            --focus-ring: 0 0 0 3px rgba(45, 106, 79, 0.2);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}DeleGate{% endblock %}</title>
+  {% if user.is_authenticated %}<meta name="dg-auth" content="1">{% endif %}
+  <meta name="csrf-token" content="{{ csrf_token }}">
 
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23234E3D' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 20.5V9a7.5 7.5 0 0 1 15 0v11.5'/%3E%3Cpath d='M9 20.5V10a3 3 0 0 1 6 0v10.5'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-        html { scroll-behavior: smooth; }
-
-        body {
-            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-            background: var(--canvas);
-            color: var(--text-primary);
-            line-height: 1.6;
-            font-size: 15px;
-            min-height: 100vh;
-        }
-
-        /* ── Sticky Nav ── */
-        .nav {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 2rem;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            color: var(--brand);
-            font-weight: 700;
-            font-size: 1.1rem;
-            letter-spacing: -0.01em;
-        }
-        .nav-brand svg { flex-shrink: 0; }
-
-        .nav-tabs {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            list-style: none;
-        }
-
-        .nav-tabs a {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.4rem 0.9rem;
-            border-radius: var(--radius-pill);
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: all var(--transition);
-        }
-        .nav-tabs a:hover, .nav-tabs a.active {
-            background: var(--accent-soft);
-            color: var(--brand);
-        }
-
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .user-badge {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.3rem 0.75rem;
-            background: var(--surface-2);
-            border-radius: var(--radius-pill);
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-        .user-avatar {
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            background: var(--accent-soft);
-            color: var(--brand);
-            font-size: 0.7rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-logout {
-            padding: 0.35rem 0.85rem;
-            border-radius: var(--radius-pill);
-            border: 1px solid var(--border);
-            background: transparent;
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all var(--transition);
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .btn-logout:hover {
-            border-color: var(--critical);
-            color: var(--critical);
-            background: rgba(200, 75, 49, 0.05);
-        }
-
-        /* ── Page Wrapper ── */
-        .page-wrapper {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 2rem 2rem 4rem;
-        }
-
-        /* ── Cards ── */
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow);
-            padding: 1.75rem;
-        }
-
-        /* ── Form Elements ── */
-        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
-
-        label {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-        }
-
-        input[type="text"], input[type="email"], input[type="password"],
-        input[type="date"], select, textarea {
-            padding: 0.65rem 0.9rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            background: var(--surface-2);
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 0.9375rem;
-            transition: all var(--transition);
-            outline: none;
-            width: 100%;
-        }
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--brand);
-            background: var(--surface);
-            box-shadow: var(--focus-ring);
-        }
-        input:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* ── Buttons ── */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-            padding: 0.65rem 1.25rem;
-            border-radius: var(--radius-sm);
-            font-family: inherit;
-            font-size: 0.9375rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all var(--transition);
-            border: none;
-            text-decoration: none;
-        }
-        .btn:focus-visible { box-shadow: var(--focus-ring); outline: none; }
-
-        .btn-primary {
-            background: var(--brand);
-            color: #fff;
-        }
-        .btn-primary:hover { background: var(--brand-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-
-        .btn-secondary {
-            background: var(--surface-2);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-        .btn-secondary:hover { background: var(--border); }
-
-        .btn-full { width: 100%; }
-
-        /* ── Alert / Toast Banners ── */
-        .alert {
-            padding: 0.75rem 1rem;
-            border-radius: var(--radius-sm);
-            font-size: 0.875rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid transparent;
-        }
-        .alert-error { background: rgba(200, 75, 49, 0.08); color: var(--critical); border-color: rgba(200, 75, 49, 0.2); }
-        .alert-success { background: rgba(45, 106, 79, 0.08); color: var(--brand); border-color: rgba(45, 106, 79, 0.2); }
-        .alert-warning { background: rgba(217, 119, 6, 0.08); color: var(--amber); border-color: rgba(217, 119, 6, 0.2); }
-
-        /* ── Toast ── */
-        .toast-container {
-            position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            z-index: 999;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .toast {
-            padding: 0.75rem 1.1rem;
-            border-radius: var(--radius-sm);
-            background: var(--text-primary);
-            color: #fff;
-            font-size: 0.875rem;
-            font-weight: 500;
-            box-shadow: var(--shadow-md);
-            animation: slideUp 0.2s ease, fadeOut 0.3s ease 2.7s forwards;
-            max-width: 320px;
-        }
-        .toast.success { background: var(--brand); }
-        .toast.error { background: var(--critical); }
-
-        @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; pointer-events: none; } }
-
-        /* ── Priority Pills ── */
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.2rem 0.6rem;
-            border-radius: var(--radius-pill);
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-        .pill-low { background: var(--accent-soft); color: var(--brand); }
-        .pill-med { background: #E8F4FD; color: #1A6FA4; }
-        .pill-high { background: rgba(217, 119, 6, 0.12); color: var(--amber); }
-        .pill-crit { background: rgba(200, 75, 49, 0.1); color: var(--critical); }
-        .pill-pending { background: var(--surface-2); color: var(--text-secondary); }
-        .pill-inprogress { background: rgba(217, 119, 6, 0.1); color: var(--amber); }
-        .pill-completed { background: var(--accent-soft); color: var(--brand); }
-
-        /* ── Auth Container ── */
-        .auth-wrap {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(82, 183, 136, 0.12) 0%, var(--canvas) 70%);
-            padding: 2rem;
-        }
-        .auth-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-md);
-            padding: 2.5rem 2rem;
-            width: 100%;
-            max-width: 420px;
-        }
-
-        /* ── Progress & Stepper Tokens ── */
-        .progress-track {
-            background: var(--surface-2);
-            border-radius: var(--radius-pill);
-            height: 8px;
-            overflow: hidden;
-            width: 100%;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--brand), var(--accent));
-            border-radius: var(--radius-pill);
-            transition: width 250ms ease;
-        }
-
-        .effort-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.18rem 0.55rem;
-            border-radius: var(--radius-pill);
-            font-size: 0.72rem;
-            font-weight: 700;
-            background: var(--surface-2);
-            color: var(--brand);
-            border: 1px solid var(--border);
-        }
-
-        .stepper-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1rem;
-            margin: 1.25rem 0 2rem;
-        }
-
-        .gate-card {
-            border-radius: var(--radius-md);
-            padding: 1.25rem;
-            position: relative;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-            transition: all var(--transition);
-        }
-        .gate-card.passed {
-            border-color: var(--accent);
-            background: #F4FAF6;
-        }
-        .gate-card.unlocked {
-            border: 2px solid var(--brand);
-            box-shadow: 0 6px 20px rgba(45, 106, 79, 0.12);
-        }
-        .gate-card.locked {
-            border: 1px dashed #CBD5CE;
-            background: #F8FAF8;
-            opacity: 0.85;
-        }
-
-        /* ── Utilities ── */
-        .text-muted { color: var(--text-secondary); }
-        .text-sm { font-size: 0.875rem; }
-        .text-xs { font-size: 0.75rem; }
-        .fw-600 { font-weight: 600; }
-        .mt-1 { margin-top: 0.5rem; }
-        .mt-2 { margin-top: 1rem; }
-        .mt-3 { margin-top: 1.5rem; }
-        .gap-1 { gap: 0.5rem; }
-        .gap-2 { gap: 1rem; }
-        .flex { display: flex; }
-        .items-center { align-items: center; }
-        .justify-between { justify-content: space-between; }
-        .w-full { width: 100%; }
-        .hidden { display: none; }
-        .text-center { text-align: center; }
-    </style>
+  <script src="{% static 'js/theme-boot.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components.css' %}">
+  <link rel="stylesheet" href="{% static 'css/pages.css' %}">
+  {% block head_extra %}{% endblock %}
 </head>
-<body>
-    {% if user.is_authenticated %}
-    <nav class="nav">
-        <a href="{% url 'home' %}" class="nav-brand">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="5" r="2.5" fill="#2D6A4F"/>
-                <circle cx="5" cy="17" r="2.5" fill="#52B788"/>
-                <circle cx="19" cy="17" r="2.5" fill="#52B788"/>
-                <line x1="12" y1="7.5" x2="5" y2="14.5" stroke="#2D6A4F" stroke-width="1.5"/>
-                <line x1="12" y1="7.5" x2="19" y2="14.5" stroke="#2D6A4F" stroke-width="1.5"/>
-                <line x1="5" y1="17" x2="19" y2="17" stroke="#D8F3DC" stroke-width="1.5"/>
-            </svg>
-            DeleGate
+<body class="{% block body_class %}{% endblock %}">
+  {% include 'partials/_icons.html' %}
+  <a class="skip" href="#main">Skip to content</a>
+
+  {% block layout %}
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Primary">
+      <a class="brand" href="{% url 'home' %}">
+        <svg class="ico" aria-hidden="true"><use href="#i-mark"/></svg>
+        DeleGate
+      </a>
+
+      {% with ws=ui_workspace %}
+      <nav class="nav-group" aria-label="Workspace">
+        <span class="nav-label">Workspace</span>
+        <a class="nav-link" href="{{ ws.url }}"{% if request.resolver_match.url_name == ws.url_name %} aria-current="page"{% endif %}>
+          <svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>
+          <span class="nav-link-text">{{ ws.label }}</span>
         </a>
+      </nav>
+      {% endwith %}
 
-        <ul class="nav-tabs">
-            <li><a href="{% url 'claimant_dashboard' %}" {% if request.resolver_match.url_name == 'claimant_dashboard' %}class="active"{% endif %}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Claimant Pool (Mine!)
-            </a></li>
-            <li><a href="{% url 'assigner_dashboard' %}" {% if request.resolver_match.url_name == 'assigner_dashboard' %}class="active"{% endif %}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                Assigner Gate Hub
-            </a></li>
-            <li><a href="{% url 'user_profile:profile' %}" {% if 'profile' in request.resolver_match.url_name %}class="active"{% endif %}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                Profile
-            </a></li>
-            <li><a href="{% url 'user_settings:settings' %}" {% if 'settings' in request.resolver_match.url_name %}class="active"{% endif %}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
-                Settings
-            </a></li>
-        </ul>
-
-        <div class="nav-right">
-            <span class="user-badge">
-                <span class="user-avatar">{{ user.username|slice:":2"|upper }}</span>
-                {{ user.get_full_name|default:user.username }}
-            </span>
-            <form method="POST" action="{% url 'logout' %}" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn-logout">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    Log Out
-                </button>
-            </form>
-        </div>
-    </nav>
-    {% endif %}
-
-    {% if messages %}
-    <div class="toast-container" id="toast-container">
-        {% for message in messages %}
-        <div class="toast {% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% endif %}">
-            {{ message }}
-        </div>
+      {% if projects %}
+      <nav class="nav-group" aria-label="Projects">
+        <span class="nav-label">Projects</span>
+        {% for p in projects %}
+        <a class="nav-link" href="?project={{ p.pk }}"{% if project and p.pk == project.pk %} aria-current="page"{% endif %}>
+          <span class="nav-link-text">{{ p.name }}</span>
+        </a>
         {% endfor %}
+        {% block sidebar_projects_extra %}{% endblock %}
+      </nav>
+      {% endif %}
+
+      <div class="nav-spacer"></div>
+
+      <nav class="nav-group" aria-label="Account">
+        <a class="nav-link" href="{% url 'user_profile:profile' %}"{% if request.resolver_match.url_name == 'profile' %} aria-current="page"{% endif %}>
+          <svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>
+          <span class="nav-link-text">Profile</span>
+        </a>
+        <a class="nav-link" href="{% url 'user_settings:settings' %}"{% if request.resolver_match.url_name == 'settings' %} aria-current="page"{% endif %}>
+          <svg class="ico" aria-hidden="true"><use href="#i-sliders"/></svg>
+          <span class="nav-link-text">Settings</span>
+        </a>
+      </nav>
+    </aside>
+    <div class="nav-scrim"></div>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-start">
+          <button type="button" class="icon-btn nav-toggle" data-nav-toggle aria-label="Open navigation" aria-controls="sidebar">
+            <svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg>
+          </button>
+          <div class="crumbs">{% block crumbs %}<strong>DeleGate</strong>{% endblock %}</div>
+        </div>
+
+        <div class="topbar-tools">
+          {% include 'partials/_theme_switch.html' %}
+
+          <details class="menu">
+            <summary aria-label="Account menu">
+              <span class="menu-name">{{ user.get_full_name|default:user.username }}</span>
+              <svg class="ico" aria-hidden="true"><use href="#i-chevron"/></svg>
+            </summary>
+            <div class="menu-panel">
+              <div class="menu-who">
+                <strong>{{ user.get_full_name|default:user.username }}</strong>
+                <span>@{{ user.username }}</span>
+              </div>
+              <a class="nav-link" href="{% url 'user_profile:profile' %}">
+                <svg class="ico" aria-hidden="true"><use href="#i-user"/></svg> Profile
+              </a>
+              <a class="nav-link" href="{% url 'user_settings:settings' %}">
+                <svg class="ico" aria-hidden="true"><use href="#i-sliders"/></svg> Settings
+              </a>
+              {% if ui_workspace %}
+              <a class="nav-link" href="{{ ui_workspace.other_url }}">
+                <svg class="ico" aria-hidden="true"><use href="#i-swap"/></svg> Switch to {{ ui_workspace.other_label|lower }}
+              </a>
+              {% endif %}
+              <div class="menu-rule"></div>
+              <form method="POST" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="nav-link">
+                  <svg class="ico" aria-hidden="true"><use href="#i-out"/></svg> Sign out
+                </button>
+              </form>
+            </div>
+          </details>
+        </div>
+      </header>
+
+      <main id="main">
+        {% block content %}{% endblock %}
+      </main>
     </div>
-    {% endif %}
+  </div>
+  {% endblock %}
 
-    {% block content %}{% endblock %}
+  {% block toasts %}
+  <div class="toasts" id="toasts" role="region" aria-label="Notifications">
+    {% for message in messages %}
+    <div class="toast" data-tone="{{ message.level_tag }}" role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endblock %}
 
-    <script>
-        // Auto-dismiss toasts
-        setTimeout(() => {
-            const toasts = document.querySelectorAll('.toast');
-            toasts.forEach(t => t.remove());
-        }, 3200);
-    </script>
+  <dialog class="drawer" id="drawer" aria-labelledby="drawer-title">
+    <div class="drawer-panel">
+      <header class="drawer-head">
+        <div>
+          <p class="drawer-kicker" id="drawer-kicker"></p>
+          <h2 class="drawer-title" id="drawer-title"></h2>
+        </div>
+        <button type="button" class="icon-btn" data-drawer-close aria-label="Close panel">
+          <svg class="ico" aria-hidden="true"><use href="#i-close"/></svg>
+        </button>
+      </header>
+      <div class="drawer-body" id="drawer-body"></div>
+    </div>
+  </dialog>
+
+  <dialog class="confirm" id="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <h2 id="confirm-title">Are you sure?</h2>
+    <p id="confirm-message"></p>
+    <div class="confirm-actions">
+      <button type="button" class="btn btn-ghost" id="confirm-cancel">Cancel</button>
+      <button type="button" class="btn" id="confirm-ok">Confirm</button>
+    </div>
+  </dialog>
+
+  <script src="{% static 'js/ui.js' %}" defer></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

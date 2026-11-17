@@ -1,93 +1,103 @@
 {% extends 'base.html' %}
-{% block title %}Create Account | DeleGate{% endblock %}
+{% block title %}Create account | DeleGate{% endblock %}
 
-{% block content %}
-<div class="auth-wrap">
-  <div class="auth-card">
+{% block toasts %}<div class="toasts" id="toasts" role="region" aria-label="Notifications"></div>{% endblock %}
 
-    <div class="text-center" style="margin-bottom:1.75rem;">
-      <div style="display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; background:var(--accent-soft); border-radius:var(--radius-md); margin-bottom:1rem;">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="5" r="2.5" fill="#2D6A4F"/>
-          <circle cx="5" cy="17" r="2.5" fill="#52B788"/>
-          <circle cx="19" cy="17" r="2.5" fill="#52B788"/>
-          <line x1="12" y1="7.5" x2="5" y2="14.5" stroke="#2D6A4F" stroke-width="1.5"/>
-          <line x1="12" y1="7.5" x2="19" y2="14.5" stroke="#2D6A4F" stroke-width="1.5"/>
-        </svg>
-      </div>
-      <h1 style="font-size:1.5rem; font-weight:700; color:var(--text-primary); margin-bottom:0.3rem;">Create your account</h1>
-      <p class="text-muted text-sm">Join DeleGate and start delegating with clarity</p>
+{% block layout %}
+<div class="auth">
+  <section class="auth-aside" aria-label="About DeleGate">
+    <a class="brand" href="{% url 'login' %}">
+      <svg class="ico" aria-hidden="true"><use href="#i-mark"/></svg>
+      DeleGate
+    </a>
+
+    <div class="auth-statement">
+      <h2>One task at a time, on purpose.</h2>
+      <p>Mine a task, work it, hand it in for review. Your manager decides when it's done and when the next gate opens.</p>
     </div>
 
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
+    <ol class="gates" aria-hidden="true">
+      <li class="gate" data-state="active" style="--fill: 66">
+        <div class="gate-rail"><span class="gate-rail-fill"></span></div>
+        <div class="gate-head">
+          <span class="gate-no">G1</span>
+          <svg class="lock" viewBox="0 0 24 24"><path class="lock-shackle" d="M8 11V8a4 4 0 0 1 8 0v3"/><rect class="lock-body" x="5" y="11" width="14" height="9" rx="2"/><path class="lock-check" d="M9 15.5l2.2 2.2 3.8-4"/></svg>
+        </div>
+        <h3 class="gate-name">Your first gate</h3>
+        <p class="gate-count mono">2/3 done</p>
+      </li>
+      <li class="gate" data-state="locked" style="--fill: 0">
+        <div class="gate-rail"><span class="gate-rail-fill"></span></div>
+        <div class="gate-head">
+          <span class="gate-no">G2</span>
+          <svg class="lock" viewBox="0 0 24 24"><path class="lock-shackle" d="M8 11V8a4 4 0 0 1 8 0v3"/><rect class="lock-body" x="5" y="11" width="14" height="9" rx="2"/><path class="lock-check" d="M9 15.5l2.2 2.2 3.8-4"/></svg>
+        </div>
+        <h3 class="gate-name">Waiting on G1</h3>
+        <p class="gate-count mono">0/4 done</p>
+      </li>
+    </ol>
+  </section>
 
-    {% if form.non_field_errors %}
-      <div class="alert alert-error">{{ form.non_field_errors.0 }}</div>
-    {% endif %}
+  <main class="auth-main" id="main">
+    <div class="auth-form">
+      <a class="brand auth-brand-mobile" href="{% url 'login' %}">
+        <svg class="ico" aria-hidden="true"><use href="#i-mark"/></svg>
+        DeleGate
+      </a>
 
-    <form method="POST" novalidate>
-      {% csrf_token %}
+      <h1>Create your account</h1>
+      <p>It takes a username and a password.</p>
 
-      <div class="form-group" style="margin-bottom:1rem;">
-        <label for="id_username">Username</label>
-        <input type="text" name="username" id="id_username" autocomplete="username"
-               value="{{ form.username.value|default:'' }}" placeholder="choose_a_username" required>
-        {% if form.username.errors %}
-          <span class="text-xs" style="color:var(--critical);">{{ form.username.errors.0 }}</span>
-        {% endif %}
-        <span class="text-xs text-muted">{{ form.username.help_text }}</span>
-      </div>
+      {% if form.non_field_errors %}
+      <p class="note note-danger mt-lg" role="alert">{{ form.non_field_errors.0 }}</p>
+      {% endif %}
 
-      <div class="form-group" style="margin-bottom:1rem; position:relative;">
-        <label for="id_password1">Password</label>
-        <input type="password" name="password1" id="id_password1" autocomplete="new-password"
-               placeholder="Create a strong password" required>
-        <button type="button" onclick="togglePwd('id_password1', this)"
-                style="position:absolute; right:0.75rem; top:2.1rem; background:none; border:none; cursor:pointer; color:var(--text-secondary); padding:0.2rem;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
-        {% if form.password1.errors %}
-          <span class="text-xs" style="color:var(--critical);">{{ form.password1.errors.0 }}</span>
-        {% endif %}
-      </div>
+      <form method="POST" novalidate>
+        {% csrf_token %}
 
-      <div class="form-group" style="margin-bottom:0.5rem; position:relative;">
-        <label for="id_password2">Confirm Password</label>
-        <input type="password" name="password2" id="id_password2" autocomplete="new-password"
-               placeholder="Repeat your password" required>
-        <button type="button" onclick="togglePwd('id_password2', this)"
-                style="position:absolute; right:0.75rem; top:2.1rem; background:none; border:none; cursor:pointer; color:var(--text-secondary); padding:0.2rem;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
-        {% if form.password2.errors %}
-          <span class="text-xs" style="color:var(--critical);">{{ form.password2.errors.0 }}</span>
-        {% endif %}
-      </div>
+        <div class="field">
+          <label for="id_username">Username</label>
+          <input class="input" type="text" name="username" id="id_username" autocomplete="username"
+                 value="{{ form.username.value|default:'' }}" required autofocus
+                 aria-describedby="help-username{% if form.username.errors %} err-username{% endif %}"
+                 {% if form.username.errors %}aria-invalid="true"{% endif %}>
+          {% if form.username.errors %}<span class="field-error" id="err-username">{{ form.username.errors.0 }}</span>{% endif %}
+          <span class="hint" id="help-username">{{ form.username.help_text }}</span>
+        </div>
 
-      <button type="submit" class="btn btn-primary btn-full" style="margin-top:1.25rem;">
-        Create Account
-      </button>
-    </form>
+        <div class="field">
+          <label for="id_password1">Password</label>
+          <div class="pw">
+            <input class="input" type="password" name="password1" id="id_password1" autocomplete="new-password" required
+                   {% if form.password1.errors %}aria-invalid="true" aria-describedby="err-password1"{% endif %}>
+            <button type="button" class="icon-btn" data-toggle-password="id_password1" aria-label="Show password" aria-pressed="false">
+              <svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico" aria-hidden="true" hidden><use href="#i-eyeoff"/></svg>
+            </button>
+          </div>
+          {% if form.password1.errors %}<span class="field-error" id="err-password1">{{ form.password1.errors.0 }}</span>{% endif %}
+        </div>
 
-    <p class="text-center text-sm text-muted" style="margin-top:1.5rem;">
-      Already have an account?
-      <a href="{% url 'login' %}" style="color:var(--brand); font-weight:600; text-decoration:none;">Sign in →</a>
-    </p>
-  </div>
+        <div class="field">
+          <label for="id_password2">Confirm password</label>
+          <div class="pw">
+            <input class="input" type="password" name="password2" id="id_password2" autocomplete="new-password" required
+                   {% if form.password2.errors %}aria-invalid="true" aria-describedby="err-password2"{% endif %}>
+            <button type="button" class="icon-btn" data-toggle-password="id_password2" aria-label="Show password" aria-pressed="false">
+              <svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico" aria-hidden="true" hidden><use href="#i-eyeoff"/></svg>
+            </button>
+          </div>
+          {% if form.password2.errors %}<span class="field-error" id="err-password2">{{ form.password2.errors.0 }}</span>{% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-block btn-lg">Create account</button>
+      </form>
+
+      <p class="auth-alt">Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+    </div>
+
+    <div class="auth-corner">{% include 'partials/_theme_switch.html' %}</div>
+  </main>
 </div>
-
-<script>
-function togglePwd(inputId, btn) {
-  const input = document.getElementById(inputId);
-  const isHidden = input.type === 'password';
-  input.type = isHidden ? 'text' : 'password';
-  btn.innerHTML = isHidden
-    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
-    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-}
-</script>
 {% endblock %}

@@ -1,107 +1,107 @@
 {% extends 'base.html' %}
 {% block title %}Profile | DeleGate{% endblock %}
 
+{% block crumbs %}<strong>Profile</strong>{% endblock %}
+
 {% block content %}
-<div class="page-wrapper" style="max-width:860px;">
+<div class="page page-narrow">
 
-  <!-- Identity Header -->
-  <div class="card" style="margin-bottom:1.5rem; display:flex; align-items:center; gap:1.75rem; padding:2rem;">
-    <!-- Monogram Avatar -->
-    <div style="width:72px; height:72px; border-radius:50%; background:var(--accent-soft); color:var(--brand); font-size:1.5rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:3px solid var(--border);">
-      {{ user.username|slice:":2"|upper }}
-    </div>
-    <div style="flex:1;">
-      <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.15rem;">
-        <h1 style="font-size:1.3rem; font-weight:700; color:var(--text-primary); margin:0;">
-          {{ user.get_full_name|default:user.username }}
-        </h1>
-        <span class="pill pill-low" style="text-transform:none; font-size:0.75rem;">
-          {{ profile.get_preferred_role_display }}
-        </span>
-      </div>
-      <div class="text-muted text-sm">{{ profile.role_title }}{% if profile.department %} · {{ profile.department }}{% endif %}</div>
-      
-      <div style="display:flex; gap:1.5rem; margin-top:1rem; flex-wrap:wrap;">
-        <div style="text-align:center;">
-          <div style="font-size:1.3rem; font-weight:700; color:var(--brand);">{{ stats.dispatched }}</div>
-          <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Dispatched</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:1.3rem; font-weight:700; color:var(--accent);">{{ stats.total_mined }}</div>
-          <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Mined Tasks</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:1.3rem; font-weight:700; color:var(--brand);">{{ stats.completed }}</div>
-          <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Completed</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:1.3rem; font-weight:700; color:var(--amber);">{{ stats.completion_rate }}%</div>
-          <div class="text-xs text-muted" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Success Rate</div>
-        </div>
+  <header class="page-head profile-head">
+    <div class="profile-id">
+      <span class="monogram" aria-hidden="true">{{ user.username|slice:":2"|upper }}</span>
+      <div>
+        <h1 class="page-title">{{ user.get_full_name|default:user.username }}</h1>
+        <p class="page-sub">
+          {% if profile.role_title %}{{ profile.role_title }}{% if profile.department %}, {{ profile.department }}{% endif %}{% elif profile.department %}{{ profile.department }}{% else %}@{{ user.username }}{% endif %}
+        </p>
       </div>
     </div>
-  </div>
+    <span class="flag flag-accent">{{ profile.get_preferred_role_display }}</span>
+  </header>
 
-  <!-- Edit Form -->
-  <div class="card">
-    <h2 style="font-size:1rem; font-weight:700; margin-bottom:1.5rem; color:var(--text-primary);">Edit Profile & Workspace Mode</h2>
+  <dl class="stats">
+    <div class="stat-item"><dt>Tasks dispatched</dt><dd>{{ stats.dispatched }}</dd></div>
+    <div class="stat-item"><dt>Tasks mined</dt><dd>{{ stats.total_mined }}</dd></div>
+    <div class="stat-item"><dt>Completed</dt><dd>{{ stats.completed }}</dd></div>
+    <div class="stat-item"><dt>Completion rate</dt><dd>{{ stats.completion_rate }}<small>%</small></dd></div>
+  </dl>
 
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}" style="margin-bottom:1.25rem;">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
+  <form method="POST" class="ledger-form">
+    {% csrf_token %}
 
-    <form method="POST">
-      {% csrf_token %}
-
-      <div class="form-group" style="margin-bottom:1.25rem;">
-        <label for="preferred_role">Default Workspace Focus</label>
-        <select name="preferred_role" id="preferred_role">
-          <option value="CLAIMANT" {% if profile.preferred_role == 'CLAIMANT' %}selected{% endif %}>
-            Claimant Pool (Mine!) — Focused task acquisition & agile execution
-          </option>
-          <option value="ASSIGNER" {% if profile.preferred_role == 'ASSIGNER' %}selected{% endif %}>
-            Assigner Gate Hub — Stage-Gate governance, milestone sign-offs & dispatch
-          </option>
-        </select>
-        <span class="text-xs text-muted" style="margin-top:0.25rem;">This determines which dashboard opens by default when visiting /home/.</span>
+    <section class="setting">
+      <div>
+        <h2 class="setting-title">Workspace</h2>
+        <p class="setting-desc">The workspace DeleGate opens when you sign in. You can still switch from the account menu at any time.</p>
       </div>
+      <div class="setting-body">
+        <fieldset class="field">
+          <legend class="label">Open to</legend>
+          <div class="seg" role="radiogroup" aria-label="Default workspace">
+            <label class="seg-opt">
+              <input type="radio" name="preferred_role" value="CLAIMANT"{% if profile.preferred_role == 'CLAIMANT' %} checked{% endif %}>
+              <span>Open work</span>
+            </label>
+            <label class="seg-opt">
+              <input type="radio" name="preferred_role" value="ASSIGNER"{% if profile.preferred_role == 'ASSIGNER' %} checked{% endif %}>
+              <span>Gate hub</span>
+            </label>
+          </div>
+          <span class="hint">Open work is for mining and finishing tasks. Gate hub is for dispatching, reviewing and clearing gates.</span>
+        </fieldset>
+      </div>
+    </section>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
-        <div class="form-group">
-          <label for="first_name">First Name</label>
-          <input type="text" name="first_name" id="first_name" value="{{ user.first_name }}">
+    <section class="setting">
+      <div>
+        <h2 class="setting-title">Identity</h2>
+        <p class="setting-desc">How your name appears on tasks and comments.</p>
+      </div>
+      <div class="setting-body">
+        <div class="field-pair">
+          <div class="field">
+            <label for="first_name">First name</label>
+            <input class="input" type="text" name="first_name" id="first_name" value="{{ user.first_name }}" autocomplete="given-name">
+          </div>
+          <div class="field">
+            <label for="last_name">Last name</label>
+            <input class="input" type="text" name="last_name" id="last_name" value="{{ user.last_name }}" autocomplete="family-name">
+          </div>
         </div>
-        <div class="form-group">
-          <label for="last_name">Last Name</label>
-          <input type="text" name="last_name" id="last_name" value="{{ user.last_name }}">
+        <div class="field">
+          <label for="username_ro">Username</label>
+          <input class="input" type="text" id="username_ro" value="{{ user.username }}" disabled>
+          <span class="hint">Usernames can't be changed.</span>
+        </div>
+        <div class="field-pair">
+          <div class="field">
+            <label for="role_title">Role title</label>
+            <input class="input" type="text" name="role_title" id="role_title" value="{{ profile.role_title }}" placeholder="Lead architect">
+          </div>
+          <div class="field">
+            <label for="department">Department</label>
+            <input class="input" type="text" name="department" id="department" value="{{ profile.department }}" placeholder="Platform systems">
+          </div>
         </div>
       </div>
+    </section>
 
-      <div class="form-group" style="margin-bottom:1rem;">
-        <label>Username</label>
-        <input type="text" value="{{ user.username }}" disabled>
+    <section class="setting">
+      <div>
+        <h2 class="setting-title">About</h2>
+        <p class="setting-desc">A few lines for the people you work with.</p>
       </div>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
-        <div class="form-group">
-          <label for="role_title">Role Title</label>
-          <input type="text" name="role_title" id="role_title" value="{{ profile.role_title }}" placeholder="e.g. Lead Architect">
-        </div>
-        <div class="form-group">
-          <label for="department">Department</label>
-          <input type="text" name="department" id="department" value="{{ profile.department }}" placeholder="e.g. Platform Systems">
+      <div class="setting-body">
+        <div class="field">
+          <label class="sr-only" for="bio">Bio</label>
+          <textarea class="textarea" name="bio" id="bio" rows="4" placeholder="What you work on and how to reach you.">{{ profile.bio }}</textarea>
         </div>
       </div>
+    </section>
 
-      <div class="form-group" style="margin-bottom:1.5rem;">
-        <label for="bio">Bio</label>
-        <textarea name="bio" id="bio" rows="4" placeholder="A short bio about yourself…" style="resize:vertical;">{{ profile.bio }}</textarea>
-      </div>
-
-      <button type="submit" class="btn btn-primary">Save Changes</button>
-    </form>
-  </div>
+    <div class="setting-foot">
+      <button type="submit" class="btn">Save changes</button>
+    </div>
+  </form>
 </div>
 {% endblock %}

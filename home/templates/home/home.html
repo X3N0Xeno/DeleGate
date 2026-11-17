@@ -1,25 +1,18 @@
 {% extends 'base.html' %}
-{% block title %}Dashboard | DeleGate{% endblock %}
+{% block title %}Workspace | DeleGate{% endblock %}
+{% block crumbs %}<strong>Workspace</strong>{% endblock %}
 
 {% block content %}
-<div class="page-wrapper" style="text-align: center; padding: 4rem 1rem;">
-  <div class="card" style="max-width: 520px; margin: 0 auto; padding: 3rem 2rem;">
-    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🌿</div>
-    <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
-      Welcome to DeleGate
-    </h1>
-    <p class="text-muted text-sm" style="margin-bottom: 2rem;">
-      Select your desired workspace mode below to begin collaborating.
-    </p>
-
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-      <a href="{% url 'claimant_dashboard' %}" class="btn btn-primary" style="padding: 0.85rem 1.5rem; border-radius: var(--radius-md);">
-        ⚡ Enter Claimant Pool (Mine!)
-      </a>
-      <a href="{% url 'assigner_dashboard' %}" class="btn btn-secondary" style="padding: 0.85rem 1.5rem; border-radius: var(--radius-md);">
-        📊 Enter Assigner Gate Hub
-      </a>
+<div class="page page-narrow">
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">Choose a workspace</h1>
+      <p class="page-sub">You can change the default in Profile.</p>
     </div>
+  </header>
+  <div class="sheet-actions">
+    <a href="{% url 'claimant_dashboard' %}" class="btn">Open work</a>
+    <a href="{% url 'assigner_dashboard' %}" class="btn btn-quiet">Gate hub</a>
   </div>
 </div>
 {% endblock %}

@@ -1,486 +1,291 @@
 {% extends 'base.html' %}
-{% block title %}Assigner Gate Hub | DeleGate{% endblock %}
+{% load home_extras %}
+{% block title %}Gate hub | DeleGate{% endblock %}
+
+{% block crumbs %}{% if project %}<strong>{{ project.name }}</strong><span class="crumb-sep" aria-hidden="true">/</span>{% endif %}<span>Gate hub</span>{% endblock %}
+
+{% block sidebar_projects_extra %}
+<button type="button" class="nav-link" data-open-drawer="tpl-new-project">
+  <svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>
+  <span class="nav-link-text">New project</span>
+</button>
+{% endblock %}
 
 {% block content %}
-<div class="page-wrapper">
+<div class="page">
 
-  <!-- Top Management Bar: Project Selector & Controls -->
-  <div class="card" style="margin-bottom: 1.5rem; padding: 1.5rem;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
-      <div>
-        <div class="text-xs text-muted" style="text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 0.35rem;">
-          Assigner Oversight · Stage-Gate Project
-        </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-          {% for p in projects %}
-          <a href="?project={{ p.pk }}"
-             style="padding: 0.35rem 0.85rem; border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 600; text-decoration: none; transition: all 150ms;
-                    {% if p.pk == project.pk %}background: var(--brand); color: #fff; box-shadow: var(--shadow);{% else %}background: var(--surface-2); color: var(--text-secondary); border: 1px solid var(--border);{% endif %}">
-            {{ p.name }}
-          </a>
-          {% empty %}
-          <span class="text-muted text-sm">No projects.</span>
-          {% endfor %}
-
-          <!-- Toggle Create Project Drawer -->
-          <button type="button" onclick="toggleDrawer('new-project-drawer')" class="btn-logout" style="border-radius: var(--radius-pill); font-size: 0.8rem; padding: 0.35rem 0.75rem;">
-            + New Project
-          </button>
-        </div>
-      </div>
-
-      {% if project %}
-      <div style="display: flex; align-items: center; gap: 1rem;">
-        <button type="button" onclick="toggleDrawer('new-gate-drawer')" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
-          + Add Stage Gate
-        </button>
-
-        <div style="min-width: 200px; text-align: right;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-            <span class="text-xs text-muted" style="font-weight: 600; text-transform: uppercase;">Overall Completion</span>
-            <span style="font-size: 0.9rem; font-weight: 700; color: var(--brand);">{{ project.overall_progress }}%</span>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill" style="width: {{ project.overall_progress }}%;"></div>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Collapsible New Project Drawer -->
-    <div id="new-project-drawer" class="hidden" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-      <h3 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);">
-        Create New Stage-Gate Project
-      </h3>
-      <form method="POST" action="{% url 'create_project' %}">
-        {% csrf_token %}
-        <div style="display: grid; grid-template-columns: 1fr 2fr auto; gap: 0.75rem; align-items: end;">
-          <div class="form-group">
-            <label for="proj_name">Project Name</label>
-            <input type="text" name="name" id="proj_name" placeholder="e.g. Mobile App v2.0" required>
-          </div>
-          <div class="form-group">
-            <label for="proj_desc">Description</label>
-            <input type="text" name="description" id="proj_desc" placeholder="Scope, key milestones, and high-level objectives…">
-          </div>
-          <button type="submit" class="btn btn-primary" style="height: 38px;">Create Project</button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Collapsible New Gate Drawer -->
-    {% if project %}
-    <div id="new-gate-drawer" class="hidden" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-      <h3 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);">
-        Add Next Stage Gate to "{{ project.name }}"
-      </h3>
-      <form method="POST" action="{% url 'add_gate' project.pk %}">
-        {% csrf_token %}
-        <div style="display: grid; grid-template-columns: 1fr 2fr auto; gap: 0.75rem; align-items: end;">
-          <div class="form-group">
-            <label for="gate_name">Gate Name</label>
-            <input type="text" name="name" id="gate_name" placeholder="e.g. Gate 4: Beta Deployment" required>
-          </div>
-          <div class="form-group">
-            <label for="gate_criteria">Exit Criteria</label>
-            <input type="text" name="exit_criteria" id="gate_criteria" placeholder="e.g. Zero critical bugs & load test signoff">
-          </div>
-          <button type="submit" class="btn btn-primary" style="height: 38px;">Add Gate</button>
-        </div>
-      </form>
-    </div>
-    {% endif %}
+  {% if not project %}
+  <div class="empty">
+    <h3>No projects yet</h3>
+    <p>Create a project to start laying out its stage gates and dispatching work.</p>
+    <p class="empty-action"><button type="button" class="btn" data-open-drawer="tpl-new-project">New project</button></p>
   </div>
 
-  {% if project %}
-  <!-- Stage-Gate Pipeline with STRICT Stage-Gate Locking Enforcement -->
-  <div style="margin-bottom: 1.75rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-      <h2 style="font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); display: flex; align-items: center; gap: 0.4rem;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        Strict Stage-Gate Milestone Controls
-      </h2>
-      <span class="text-xs text-muted">Gates unlock sequentially. 100% of tasks must be COMPLETED before a gate can be passed.</span>
-    </div>
-
-    <div class="stepper-grid">
-      {% for gate in gates %}
-      <div class="gate-card {% if gate.is_passed %}passed{% elif gate.is_unlocked %}unlocked{% else %}locked{% endif %}" style="display: flex; flex-direction: column;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.6rem;">
-          <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-                       {% if gate.is_passed %}color: var(--brand);{% elif gate.is_unlocked %}color: var(--brand);{% else %}color: var(--text-muted);{% endif %}">
-            Gate {{ gate.order }}
-          </span>
-
-          {% if gate.is_passed %}
-            <span class="pill pill-low" style="background: #E8F5EE; color: var(--brand);">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-right:2px;"><polyline points="20 6 9 17 4 12"/></svg>
-              CLEARED
-            </span>
-          {% elif gate.is_unlocked %}
-            <span class="pill pill-med" style="background: var(--accent-soft); color: var(--brand); font-weight: 700;">
-              ACTIVE GATE
-            </span>
-          {% else %}
-            <span class="pill" style="background: #EAEAEA; color: #64748B;">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:2px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              LOCKED
-            </span>
-          {% endif %}
-        </div>
-
-        <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">
-          {{ gate.name }}
-        </h3>
-
-        {% if gate.exit_criteria %}
-        <p class="text-xs text-muted" style="margin-bottom: 0.75rem; font-style: italic;">
-          Exit Criteria: {{ gate.exit_criteria }}
-        </p>
-        {% endif %}
-
-        <div style="margin-top: auto; padding-top: 0.65rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-            <span class="text-xs text-muted">Tasks Complete</span>
-            <span class="text-xs font-weight: 600;">{{ gate.completed_tasks }}/{{ gate.total_tasks }} ({{ gate.progress_percent }}%)</span>
-          </div>
-          <div class="progress-track" style="height: 6px; margin-bottom: 0.75rem;">
-            <div class="progress-fill" style="width: {{ gate.progress_percent }}%; {% if not gate.is_unlocked %}background: #CBD5E1;{% endif %}"></div>
-          </div>
-
-          <!-- Assigner Sign-off Pass Button with Strict 100% Completion Guard -->
-          {% if gate.is_unlocked and not gate.is_passed %}
-            {% if gate.ready_to_pass %}
-              <form method="POST" action="{% url 'gate_pass' gate.pk %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-primary btn-full" style="padding: 0.45rem 0.8rem; font-size: 0.8rem;"
-                        onclick="return confirm('Approve Gate {{ gate.order }}? 100% of tasks are completed. This will mark it cleared and immediately unlock Gate {{ gate.order|add:1 }} for mining.')">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                  Approve & Pass Gate → Unlock Next
-                </button>
-              </form>
-            {% else %}
-              <button type="button" class="btn btn-secondary btn-full" disabled
-                      style="padding: 0.45rem 0.8rem; font-size: 0.75rem; opacity: 0.65; cursor: not-allowed; background: var(--surface-2); border-color: var(--border);"
-                      title="All tasks in this gate must be completed before it can be passed">
-                🔒 Locked: Complete all tasks in this gate first ({{ gate.completed_tasks }}/{{ gate.total_tasks }})
-              </button>
-            {% endif %}
-          {% elif gate.is_passed %}
-            <div class="text-center text-xs" style="color: var(--brand); font-weight: 700; padding: 0.35rem;">
-              ✓ Milestone Cleared & Verified
-            </div>
-          {% else %}
-            <div class="text-center text-xs text-muted" style="padding: 0.35rem;">
-              🔒 Locked behind Gate {{ gate.order|add:"-1" }} completion
-            </div>
-          {% endif %}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- Asymmetric Workspace Layout: 380px Composer + Oversight Board -->
-  <div style="display: grid; grid-template-columns: 380px 1fr; gap: 1.75rem; align-items: start;">
-
-    <!-- LEFT COLUMN: Dispatch Task to Gate Composer -->
-    <div class="card" style="position: sticky; top: 76px;">
-      <h2 style="font-size: 1rem; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary);">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Dispatch Task to Gate
-      </h2>
-
-      <form method="POST">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="dispatch_task">
-
-        <div class="form-group" style="margin-bottom: 0.9rem;">
-          <label for="task-title">Task Title</label>
-          <input type="text" name="title" id="task-title" placeholder="Deliverable name or agile work item…" required autofocus>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 0.9rem;">
-          <label for="task-gate">Target Stage Gate</label>
-          <select name="gate" id="task-gate" required>
-            {% for g in gates %}
-            <option value="{{ g.pk }}" {% if g.is_unlocked and not g.is_passed %}selected{% endif %}>
-              Gate {{ g.order }}: {{ g.name }} {% if g.is_passed %}(Cleared){% elif not g.is_unlocked %}(Locked){% endif %}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.9rem;">
-          <div class="form-group">
-            <label for="task-effort">Effort (Points)</label>
-            <select name="effort_points" id="task-effort">
-              {% for pts in effort_choices %}
-              <option value="{{ pts }}" {% if pts == 3 %}selected{% endif %}>{{ pts }} pts</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="task-priority">Priority</label>
-            <select name="priority" id="task-priority">
-              {% for val, label in priority_choices %}
-              <option value="{{ val }}" {% if val == 'MED' %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 0.9rem;">
-          <label for="task-due">Due Date</label>
-          <input type="date" name="due_date" id="task-due">
-        </div>
-
-        <!-- Multi-Claim Toggle -->
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.9rem; padding: 0.6rem 0.8rem; background: var(--surface-2); border-radius: var(--radius-sm); border: 1px solid var(--border);">
-          <input type="checkbox" name="is_multiclaimable" id="is_multiclaimable" style="width: 16px; height: 16px; accent-color: var(--brand);">
-          <label for="is_multiclaimable" style="margin: 0; text-transform: none; font-weight: 600; font-size: 0.82rem; cursor: pointer;">
-            Allow Multi-Claim (Stackable)
-          </label>
-          <span class="text-xs text-muted" style="margin-left: auto;">Can be mined alongside active work</span>
-        </div>
-
-        <div class="form-group" style="margin-bottom: 1.25rem;">
-          <label for="task-desc">Description & Acceptance Criteria</label>
-          <textarea name="description" id="task-desc" rows="3" placeholder="Context, specs, dependencies, and definition of done…" style="resize: vertical;"></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-full">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          Dispatch to Pipeline
-        </button>
-      </form>
-    </div>
-
-    <!-- RIGHT COLUMN: Gate-Grouped Oversight Board -->
+  {% else %}
+  <header class="page-head">
     <div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-        <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
-          <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: var(--accent-soft); color: var(--brand); border-radius: 50%;">📊</span>
-          Pipeline Oversight Board
-        </h2>
-
-        <!-- Gate Filter -->
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span class="text-xs text-muted">Gate:</span>
-          <select onchange="location.href='?project={{ project.pk }}&status={{ status_filter }}&gate=' + this.value" style="padding: 0.3rem 0.6rem; font-size: 0.8rem; width: auto;">
-            <option value="all" {% if gate_filter == 'all' %}selected{% endif %}>All Gates</option>
-            {% for g in gates %}
-            <option value="{{ g.pk }}" {% if gate_filter == g.pk|stringformat:"s" %}selected{% endif %}>
-              Gate {{ g.order }}: {{ g.name }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-
-      <!-- Segmented Status Tabs -->
-      <div style="display: flex; gap: 0.25rem; margin-bottom: 1.25rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.3rem; flex-wrap: wrap;">
-        {% for t in filter_tabs %}
-        <a href="?project={{ project.pk }}&gate={{ gate_filter }}&status={{ t.key }}"
-           style="padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; text-decoration: none; transition: all 150ms;
-                  {% if t.active %}background: var(--brand); color: #fff;{% else %}color: var(--text-secondary);{% endif %}">
-          {{ t.label }} ({{ t.count }})
-        </a>
-        {% endfor %}
-      </div>
-
-      <!-- Task Oversight Cards -->
-      <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-        {% for task in tasks %}
-        <div class="card task-card" style="padding: 1.25rem; {% if task.is_blocked %}border: 1px solid var(--critical); background: #FFFBFB;{% endif %}">
-          
-          {% if task.is_blocked %}
-          <div class="alert alert-error" style="margin-bottom: 0.75rem; font-size: 0.8rem; padding: 0.45rem 0.75rem;">
-            🚨 <strong>Claimant Flagged Blocker:</strong> {{ task.blocker_note }}
-          </div>
-          {% endif %}
-
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.4rem;">
-            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-              <span class="pill pill-low" style="font-size: 0.7rem;">Gate {{ task.gate.order }}</span>
-              <span class="pill pill-{{ task.priority|lower }}">{{ task.get_priority_display }}</span>
-              <span class="effort-pill">{{ task.effort_points }} pts</span>
-
-              {% if task.is_multiclaimable %}
-                <span class="pill pill-med" style="background: #E0F2FE; color: #0369A1; font-weight: 700; font-size: 0.68rem;">Multi-Claim</span>
-              {% endif %}
-
-              {% if task.dissolved_count > 0 %}
-                <span class="pill" style="background: rgba(200, 75, 49, 0.1); color: var(--critical); font-weight: 700; font-size: 0.68rem;">
-                  ↺ Dissolved (x{{ task.dissolved_count }})
-                </span>
-              {% endif %}
-
-              {% if task.status == 'OPEN' %}
-                <span class="pill" style="background: var(--surface-2); color: var(--text-secondary);">OPEN IN POOL</span>
-              {% elif task.status == 'CLAIMED' %}
-                <span class="pill pill-pending">CLAIMED</span>
-              {% elif task.status == 'IN_PROGRESS' %}
-                <span class="pill pill-inprogress">IN PROGRESS</span>
-              {% elif task.status == 'IN_REVIEW' %}
-                <span class="pill pill-high" style="font-weight: 700;">⏳ IN REVIEW</span>
-              {% elif task.status == 'COMPLETED' %}
-                <span class="pill pill-completed">COMPLETED</span>
-              {% endif %}
-            </div>
-
-            {% if task.due_date %}
-            <span class="text-xs {% if task.due_date < today and task.status != 'COMPLETED' %}text-critical{% else %}text-muted{% endif %}">
-              Due {{ task.due_date|date:"M j" }}
-            </span>
-            {% endif %}
-          </div>
-
-          <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem; {% if task.status == 'COMPLETED' %}text-decoration: line-through; color: var(--text-muted);{% endif %}">
-            {{ task.title }}
-          </h3>
-
-          {% if task.description %}
-          <p class="text-xs text-muted" style="margin-bottom: 0.5rem; line-height: 1.5;">
-            {{ task.description }}
-          </p>
-          {% endif %}
-
-          {% if task.progress_notes %}
-          <div style="background: var(--surface-2); padding: 0.45rem 0.65rem; border-radius: var(--radius-sm); margin-bottom: 0.65rem; border: 1px solid var(--border); font-size: 0.76rem;">
-            <span style="font-weight: 700; color: var(--brand);">Worker Progress Notes:</span>
-            <div style="color: var(--text-primary); margin-top: 0.15rem;">{{ task.progress_notes }}</div>
-          </div>
-          {% endif %}
-
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.65rem; border-top: 1px solid var(--border);">
-            
-            <!-- Claimant Info -->
-            <div style="display: flex; align-items: center; gap: 0.4rem;">
-              {% if task.claimed_by %}
-              <span style="width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--brand); font-size: 0.65rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">
-                {{ task.claimed_by.username|slice:":2"|upper }}
-              </span>
-              <span class="text-xs font-weight: 600; color: var(--text-primary);">
-                Mined by @{{ task.claimed_by.username }}
-              </span>
-              {% else %}
-              <span class="text-xs text-muted">Available in open pool</span>
-              {% endif %}
-            </div>
-
-            <!-- Controls: Manager Review (Approve or Return), Comments, Delete -->
-            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-              {% if task.status == 'IN_REVIEW' %}
-              <!-- 1. Approve & Mark Done -->
-              <form method="POST" action="{% url 'task_manager_review' task.pk %}" style="display: inline;">
-                {% csrf_token %}
-                <input type="hidden" name="review_action" value="approve">
-                <button type="submit" class="btn btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">
-                  ✓ Approve & Mark Done
-                </button>
-              </form>
-
-              <!-- 2. Return with Feedback Drawer Toggle -->
-              <button type="button" onclick="toggleDrawer('review-return-{{ task.pk }}')" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.75rem; background: #FFF5F5; color: var(--critical); border-color: #FED7D7; font-weight: 700;">
-                ↺ Return / Dissolve
-              </button>
-              {% endif %}
-
-              <button type="button" onclick="toggleComments('assigner-comments-{{ task.pk }}')" class="btn-logout" style="font-size: 0.72rem; padding: 0.2rem 0.55rem; color: var(--text-secondary); border-color: var(--border);">
-                💬 {{ task.comments.count }}
-              </button>
-
-              <form method="POST" action="{% url 'task_delete' task.pk %}" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" title="Delete task" class="btn-logout" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;" onclick="return confirm('Delete task: {{ task.title }}?')">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <!-- Manager Return / Dissolve Drawer -->
-          {% if task.status == 'IN_REVIEW' %}
-          <div id="review-return-{{ task.pk }}" class="hidden" style="margin-top: 0.75rem; padding: 0.85rem; background: #FFFBFB; border: 1px solid var(--border); border-radius: var(--radius-sm);">
-            <div class="text-xs" style="margin-bottom: 0.5rem;">
-              <strong>Return Policy & State Determination:</strong>
-              {% if task.due_date and task.due_date < today %}
-                <div style="color: var(--critical); font-weight: 600; margin-top: 0.2rem;">
-                  ⚠️ Task is <strong>OVERDUE</strong> (due {{ task.due_date }}). Returning will dissolve task back to the open pool for another claimant. All worker progress notes will be preserved.
-                </div>
-              {% else %}
-                <div style="color: var(--brand); font-weight: 600; margin-top: 0.2rem;">
-                  ✓ Task deadline is valid ({% if task.due_date %}due {{ task.due_date }}{% else %}no due date{% endif %}). Returning will keep task assigned to @{{ task.claimed_by.username }} and reset status to In Progress.
-                </div>
-              {% endif %}
-            </div>
-
-            <form method="POST" action="{% url 'task_manager_review' task.pk %}">
-              {% csrf_token %}
-              <input type="hidden" name="review_action" value="return">
-              <div style="display: flex; gap: 0.4rem;">
-                <input type="text" name="feedback" placeholder="Revision requirements or return notes…" required style="font-size: 0.8rem; padding: 0.35rem 0.65rem;">
-                <button type="submit" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.85rem; white-space: nowrap; background: #FED7D7; color: var(--critical); font-weight: 700;">
-                  Confirm Return
-                </button>
-              </div>
-            </form>
-          </div>
-          {% endif %}
-
-          <!-- Comments Thread Drawer -->
-          <div id="assigner-comments-{{ task.pk }}" class="hidden" style="margin-top: 0.75rem; padding-top: 0.65rem; border-top: 1px dashed var(--border);">
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.4rem;">
-              Activity & Comments
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 160px; overflow-y: auto; margin-bottom: 0.6rem;">
-              {% for c in task.comments.all %}
-              <div style="background: var(--surface-2); padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.78rem;">
-                <span style="font-weight: 700; color: var(--brand);">@{{ c.author.username }}</span>
-                <span class="text-xs text-muted" style="margin-left: 0.3rem;">{{ c.created_at|date:"M j, H:i" }}</span>
-                <div style="margin-top: 0.15rem; color: var(--text-primary);">{{ c.body }}</div>
-              </div>
-              {% empty %}
-              <div class="text-xs text-muted">No comments recorded.</div>
-              {% endfor %}
-            </div>
-
-            <form method="POST" action="{% url 'task_add_comment' task.pk %}">
-              {% csrf_token %}
-              <div style="display: flex; gap: 0.4rem;">
-                <input type="text" name="body" placeholder="Write feedback or guidance for claimant…" required style="font-size: 0.8rem; padding: 0.4rem 0.65rem;">
-                <button type="submit" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.4rem 0.75rem;">Post</button>
-              </div>
-            </form>
-          </div>
-
-        </div>
-        {% empty %}
-        <div class="card" style="padding: 2.5rem; text-align: center; color: var(--text-muted); background: #FAFBF9;">
-          <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📋</div>
-          <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">No tasks match this filter</div>
-          <div class="text-sm">Use the composer on the left to dispatch work into a gate.</div>
-        </div>
-        {% endfor %}
-      </div>
+      <h1 class="page-title">{{ project.name }}</h1>
+      {% if project.description %}<p class="page-sub">{{ project.description }}</p>{% endif %}
     </div>
-  </div>
-  {% endif %}
+    <div class="head-actions">
+      <button type="button" class="btn btn-ghost" data-open-drawer="tpl-new-gate">Add gate</button>
+      <button type="button" class="btn" data-open-drawer="tpl-new-task" data-shortcut="c">New task <kbd>C</kbd></button>
+    </div>
+  </header>
 
+  <div class="progress-line">
+    <span><span class="mono">{{ project.overall_progress }}%</span> of the project is complete</span>
+    <div class="meter" style="--v: {{ project.overall_progress }}" role="img" aria-label="Project {{ project.overall_progress }} percent complete"><span></span></div>
+  </div>
+
+  {% include 'home/partials/_gates.html' with mode='assign' %}
+
+  <section aria-labelledby="board-title">
+    <h2 class="sr-only" id="board-title">Task board</h2>
+
+    <div class="board-tools">
+      <nav class="tabs" aria-label="Filter tasks by status">
+        {% for t in filter_tabs %}
+        <a class="tab" href="?project={{ project.pk }}&amp;gate={{ gate_filter }}&amp;status={{ t.key }}"{% if t.active %} aria-current="page"{% endif %}>{{ t.label }}<span class="mono">{{ t.count }}</span></a>
+        {% endfor %}
+      </nav>
+
+      <label class="gate-filter">
+        <span>Gate</span>
+        <select class="select select-inline" data-nav-template="?project={{ project.pk }}&amp;status={{ status_filter }}&amp;gate=__v__">
+          <option value="all"{% if gate_filter == 'all' %} selected{% endif %}>All gates</option>
+          {% for g in gates %}
+          <option value="{{ g.pk }}"{% if gate_filter == g.pk|stringformat:"s" %} selected{% endif %}>G{{ g.order }} {{ g.name|gate_title }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    {% regroup tasks by gate as groups %}
+    {% for group in groups %}
+    <div class="group-head">
+      <span class="group-code">G{{ group.grouper.order }}</span>
+      <h3 class="group-name">{{ group.grouper.name|gate_title }}</h3>
+      <span class="group-count mono">{{ group.list|length }} task{{ group.list|length|pluralize }}</span>
+    </div>
+
+    <ul class="rows">
+      {% for task in group.list %}
+      <li class="row" id="task-{{ task.pk }}">
+        <span class="row-glyph">{% include 'home/partials/_stat.html' with s=task.status label=task.get_status_display %}</span>
+        <div class="row-main">
+          <button type="button" class="row-title{% if task.status == 'COMPLETED' %} is-done{% endif %}" data-open-drawer="tpl-task-{{ task.pk }}">{{ task.title }}</button>
+          <p class="row-meta">
+            <span>{{ task.get_status_display }}</span>
+            {% if task.claimed_by %}<span>Mined by @{{ task.claimed_by.username }}</span>{% else %}<span>In the open pool</span>{% endif %}
+            {% if task.is_blocked %}<span class="flag flag-danger">Blocked</span>{% endif %}
+            {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
+            {% if task.dissolved_count %}<span class="flag flag-danger">Returned to pool {{ task.dissolved_count }}x</span>{% endif %}
+          </p>
+        </div>
+        <span class="row-figs mono">
+          {% include 'home/partials/_prio.html' with p=task.priority label=task.get_priority_display %}
+          <span>{{ task.effort_points }} pts</span>
+          {% if task.due_date %}<span class="due{% if task.due_date < today and task.status != 'COMPLETED' %} is-late{% endif %}">{{ task.due_date|date:"M j" }}</span>{% endif %}
+        </span>
+        <div class="row-action">
+          {% if task.status == 'IN_REVIEW' %}
+          <button type="button" class="btn btn-sm" data-open-drawer="tpl-task-{{ task.pk }}">Review</button>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% empty %}
+    <div class="empty">
+      <h3>No tasks match this filter</h3>
+      <p>Change the status or gate above, or dispatch a new task into a gate.</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
 </div>
 
-<script>
-function toggleDrawer(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.toggle('hidden');
-}
-function toggleComments(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.toggle('hidden');
-}
-</script>
+{# ================== Drawer contents ================== #}
+
+<template id="tpl-new-project" data-title="New project" data-kicker="">
+  <form method="POST" action="{% url 'create_project' %}" class="sheet-section sheet-stack">
+    {% csrf_token %}
+    <div class="field">
+      <label for="proj_name">Project name</label>
+      <input class="input" type="text" name="name" id="proj_name" placeholder="Mobile app v2" required autofocus>
+    </div>
+    <div class="field">
+      <label for="proj_desc">Description</label>
+      <textarea class="textarea" name="description" id="proj_desc" rows="3" placeholder="Scope, milestones and what done looks like."></textarea>
+      <span class="hint">Optional. It shows under the project name.</span>
+    </div>
+    <div><button type="submit" class="btn">Create project</button></div>
+  </form>
+</template>
+
+{% if project %}
+<template id="tpl-new-gate" data-title="Add a stage gate" data-kicker="{{ project.name }}">
+  <form method="POST" action="{% url 'add_gate' project.pk %}" class="sheet-section sheet-stack">
+    {% csrf_token %}
+    <div class="field">
+      <label for="gate_name">Gate name</label>
+      <input class="input" type="text" name="name" id="gate_name" placeholder="Beta deployment" required autofocus>
+      <span class="hint">The new gate goes after the last one and stays locked until the gate before it is cleared.</span>
+    </div>
+    <div class="field">
+      <label for="gate_criteria">Exit criteria</label>
+      <input class="input" type="text" name="exit_criteria" id="gate_criteria" placeholder="No critical bugs, load test signed off">
+    </div>
+    <div><button type="submit" class="btn">Add gate</button></div>
+  </form>
+</template>
+
+<template id="tpl-new-task" data-title="New task" data-kicker="{{ project.name }}">
+  <form method="POST" class="sheet-section sheet-stack">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="dispatch_task">
+
+    <div class="field">
+      <label for="task-title">Title</label>
+      <input class="input" type="text" name="title" id="task-title" placeholder="What needs to get done" required autofocus>
+    </div>
+
+    <div class="field">
+      <label for="task-gate">Gate</label>
+      <select class="select" name="gate" id="task-gate" required>
+        {% for g in gates %}
+        <option value="{{ g.pk }}"{% if g.is_unlocked and not g.is_passed %} selected{% endif %}>G{{ g.order }} {{ g.name|gate_title }}{% if g.is_passed %} (cleared){% elif not g.is_unlocked %} (locked){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field-pair">
+      <div class="field">
+        <label for="task-effort">Effort</label>
+        <select class="select" name="effort_points" id="task-effort">
+          {% for pts in effort_choices %}
+          <option value="{{ pts }}"{% if pts == 3 %} selected{% endif %}>{{ pts }} pts</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="task-priority">Priority</label>
+        <select class="select" name="priority" id="task-priority">
+          {% for val, label in priority_choices %}
+          <option value="{{ val }}"{% if val == 'MED' %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="task-due">Due date</label>
+      <input class="input" type="date" name="due_date" id="task-due">
+      <span class="hint">An overdue task goes back to the open pool if you send it back from review.</span>
+    </div>
+
+    <label class="check">
+      <input type="checkbox" name="is_multiclaimable" id="is_multiclaimable">
+      <span>Allow multi-claim<small>Claimants can mine this while they already have active work.</small></span>
+    </label>
+
+    <div class="field">
+      <label for="task-desc">Description and acceptance criteria</label>
+      <textarea class="textarea" name="description" id="task-desc" rows="4" placeholder="Context, specs and the definition of done."></textarea>
+    </div>
+
+    <div><button type="submit" class="btn">Dispatch task</button></div>
+  </form>
+</template>
+{% endif %}
+
+{% for task in tasks %}
+<template id="tpl-task-{{ task.pk }}" data-title="{{ task.title }}" data-kicker="G{{ task.gate.order }}  {{ task.gate.name|gate_title }}">
+  {% include 'home/partials/_task_facts.html' %}
+
+  {% if task.is_blocked %}
+  <section class="sheet-section">
+    <p class="note note-danger"><strong>Blocked by the claimant.</strong> {{ task.blocker_note }}</p>
+  </section>
+  {% endif %}
+
+  {% if task.status == 'IN_REVIEW' %}
+  <section class="sheet-section">
+    <h3 class="sheet-label">Review</h3>
+    <p class="sheet-text mb-sm">@{{ task.claimed_by.username }} submitted this for approval.</p>
+
+    <div class="sheet-stack">
+      <form method="POST" action="{% url 'task_manager_review' task.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="review_action" value="approve">
+        <button type="submit" class="btn">Approve and mark done</button>
+      </form>
+
+      <form method="POST" action="{% url 'task_manager_review' task.pk %}" class="sheet-stack"
+        {% if task.due_date and task.due_date < today %}
+        data-confirm="This task is overdue, so it goes back to the open pool for another claimant. @{{ task.claimed_by.username }} loses it and the progress notes stay with the task."
+        data-confirm-title="Return to the open pool?"
+        data-confirm-label="Return to pool"
+        data-confirm-tone="danger"
+        {% endif %}>
+        {% csrf_token %}
+        <input type="hidden" name="review_action" value="return">
+
+        {% if task.due_date and task.due_date < today %}
+        <p class="note note-danger"><strong>Overdue since {{ task.due_date|date:"M j, Y" }}.</strong> Sending it back returns the task to the open pool for another claimant. All progress notes are kept.</p>
+        {% else %}
+        <p class="note note-accent"><strong>{% if task.due_date %}Due {{ task.due_date|date:"M j, Y" }}.{% else %}No due date.{% endif %}</strong> Sending it back keeps it with @{{ task.claimed_by.username }} and sets it to In progress.</p>
+        {% endif %}
+
+        <div class="field">
+          <label for="feedback-{{ task.pk }}">Feedback for the claimant</label>
+          <textarea class="textarea" name="feedback" id="feedback-{{ task.pk }}" rows="3" placeholder="What needs to change before this can be approved?" required></textarea>
+        </div>
+        <div><button type="submit" class="btn btn-danger">Send back</button></div>
+      </form>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if task.description %}
+  <section class="sheet-section">
+    <h3 class="sheet-label">What needs doing</h3>
+    <p class="sheet-text">{{ task.description }}</p>
+  </section>
+  {% endif %}
+
+  <section class="sheet-section">
+    <h3 class="sheet-label">Claimant</h3>
+    {% if task.claimed_by %}
+    <p class="sheet-text">@{{ task.claimed_by.username }}</p>
+    {% else %}
+    <p class="sheet-text faint">Nobody has mined this yet. It's in the open pool.</p>
+    {% endif %}
+    {% if task.dissolved_count %}
+    <p class="note note-danger mt-sm">Returned to the pool {{ task.dissolved_count }} time{{ task.dissolved_count|pluralize }}.</p>
+    {% endif %}
+  </section>
+
+  {% if task.progress_notes %}
+  <section class="sheet-section">
+    <h3 class="sheet-label">Progress notes</h3>
+    <p class="sheet-text">{{ task.progress_notes }}</p>
+  </section>
+  {% endif %}
+
+  {% include 'home/partials/_thread.html' with placeholder='Write feedback or guidance for the claimant…' %}
+
+  <section class="sheet-section">
+    <form method="POST" action="{% url 'task_delete' task.pk %}"
+          data-confirm="This permanently deletes the task and its comments. It can't be undone."
+          data-confirm-title="Delete this task?"
+          data-confirm-label="Delete task"
+          data-confirm-tone="danger">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger btn-sm">Delete task</button>
+    </form>
+  </section>
+</template>
+{% endfor %}
 {% endblock %}

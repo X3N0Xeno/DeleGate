@@ -1,81 +1,98 @@
 {% extends 'base.html' %}
-{% block title %}Sign In | DeleGate{% endblock %}
+{% block title %}Sign in | DeleGate{% endblock %}
 
-{% block content %}
-<div class="auth-wrap">
-  <div class="auth-card">
+{% block toasts %}<div class="toasts" id="toasts" role="region" aria-label="Notifications"></div>{% endblock %}
 
-    <!-- Logo / Brand -->
-    <div class="text-center" style="margin-bottom: 1.75rem;">
-      <div style="display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; background:var(--accent-soft); border-radius:var(--radius-md); margin-bottom:1rem;">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="5" r="2.5" fill="#2D6A4F"/>
-          <circle cx="5" cy="17" r="2.5" fill="#52B788"/>
-          <circle cx="19" cy="17" r="2.5" fill="#52B788"/>
-          <line x1="12" y1="7.5" x2="5" y2="14.5" stroke="#2D6A4F" stroke-width="1.5"/>
-          <line x1="12" y1="7.5" x2="19" y2="14.5" stroke="#2D6A4F" stroke-width="1.5"/>
-        </svg>
-      </div>
-      <h1 style="font-size:1.5rem; font-weight:700; color:var(--text-primary); margin-bottom:0.3rem;">Welcome back</h1>
-      <p class="text-muted text-sm">Sign in to your DeleGate workspace</p>
+{% block layout %}
+<div class="auth">
+  <section class="auth-aside" aria-label="About DeleGate">
+    <a class="brand" href="{% url 'login' %}">
+      <svg class="ico" aria-hidden="true"><use href="#i-mark"/></svg>
+      DeleGate
+    </a>
+
+    <div class="auth-statement">
+      <h2>Work moves through gates.</h2>
+      <p>Managers open each gate once the one before it is done. Claimants mine what's inside.</p>
     </div>
 
-    <!-- Messages -->
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-          {% if message.tags == 'error' %}
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          {% endif %}
-          {{ message }}
+    {# Decorative: the second gate swings open a moment after the page loads #}
+    <ol class="gates" aria-hidden="true">
+      <li class="gate" data-state="passed" style="--fill: 100">
+        <div class="gate-rail"><span class="gate-rail-fill"></span></div>
+        <div class="gate-head">
+          <span class="gate-no">G1</span>
+          <svg class="lock" viewBox="0 0 24 24"><path class="lock-shackle" d="M8 11V8a4 4 0 0 1 8 0v3"/><rect class="lock-body" x="5" y="11" width="14" height="9" rx="2"/><path class="lock-check" d="M9 15.5l2.2 2.2 3.8-4"/></svg>
         </div>
+        <h3 class="gate-name">Discovery</h3>
+        <p class="gate-count mono">3/3 done</p>
+      </li>
+      <li class="gate" data-state="locked" data-then="active" style="--fill: 0">
+        <div class="gate-rail"><span class="gate-rail-fill"></span></div>
+        <div class="gate-head">
+          <span class="gate-no">G2</span>
+          <svg class="lock" viewBox="0 0 24 24"><path class="lock-shackle" d="M8 11V8a4 4 0 0 1 8 0v3"/><rect class="lock-body" x="5" y="11" width="14" height="9" rx="2"/><path class="lock-check" d="M9 15.5l2.2 2.2 3.8-4"/></svg>
+        </div>
+        <h3 class="gate-name">Engine</h3>
+        <p class="gate-count mono">0/5 done</p>
+      </li>
+      <li class="gate" data-state="locked" style="--fill: 0">
+        <div class="gate-rail"><span class="gate-rail-fill"></span></div>
+        <div class="gate-head">
+          <span class="gate-no">G3</span>
+          <svg class="lock" viewBox="0 0 24 24"><path class="lock-shackle" d="M8 11V8a4 4 0 0 1 8 0v3"/><rect class="lock-body" x="5" y="11" width="14" height="9" rx="2"/><path class="lock-check" d="M9 15.5l2.2 2.2 3.8-4"/></svg>
+        </div>
+        <h3 class="gate-name">Launch</h3>
+        <p class="gate-count mono">0/4 done</p>
+      </li>
+    </ol>
+  </section>
+
+  <main class="auth-main" id="main">
+    <div class="auth-form">
+      <a class="brand auth-brand-mobile" href="{% url 'login' %}">
+        <svg class="ico" aria-hidden="true"><use href="#i-mark"/></svg>
+        DeleGate
+      </a>
+
+      <h1>Sign in</h1>
+      <p>Pick up where you left off.</p>
+
+      {% for message in messages %}
+      <p class="note mt-lg {% if message.level_tag == 'error' %}note-danger{% elif message.level_tag == 'success' %}note-accent{% endif %}"
+         role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}">{{ message }}</p>
       {% endfor %}
-    {% endif %}
 
-    <!-- Form -->
-    <form method="POST" novalidate>
-      {% csrf_token %}
+      <form method="POST" novalidate>
+        {% csrf_token %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
-      <div class="form-group" style="margin-bottom:1rem;">
-        <label for="id_username">Username</label>
-        <input type="text" name="username" id="id_username" autocomplete="username"
-               value="{{ form.username.value|default:'' }}"
-               placeholder="your_username" required>
-        {% if form.username.errors %}
-          <span class="text-xs" style="color:var(--critical);">{{ form.username.errors.0 }}</span>
-        {% endif %}
-      </div>
+        <div class="field">
+          <label for="id_username">Username</label>
+          <input class="input" type="text" name="username" id="id_username" autocomplete="username"
+                 value="{{ form.username.value|default:'' }}" required autofocus
+                 {% if form.username.errors %}aria-invalid="true" aria-describedby="err-username"{% endif %}>
+          {% if form.username.errors %}<span class="field-error" id="err-username">{{ form.username.errors.0 }}</span>{% endif %}
+        </div>
 
-      <div class="form-group" style="margin-bottom:0.5rem; position:relative;">
-        <label for="id_password">Password</label>
-        <input type="password" name="password" id="id_password" autocomplete="current-password"
-               placeholder="••••••••" required>
-        <button type="button" onclick="togglePwd('id_password', this)"
-                style="position:absolute; right:0.75rem; top:2.1rem; background:none; border:none; cursor:pointer; color:var(--text-secondary); padding:0.2rem;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
-      </div>
+        <div class="field">
+          <label for="id_password">Password</label>
+          <div class="pw">
+            <input class="input" type="password" name="password" id="id_password" autocomplete="current-password" required>
+            <button type="button" class="icon-btn" data-toggle-password="id_password" aria-label="Show password" aria-pressed="false">
+              <svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico" aria-hidden="true" hidden><use href="#i-eyeoff"/></svg>
+            </button>
+          </div>
+        </div>
 
-      <button type="submit" class="btn btn-primary btn-full" style="margin-top:1.25rem;">
-        Sign In
-      </button>
-    </form>
+        <button type="submit" class="btn btn-block btn-lg">Sign in</button>
+      </form>
 
-    <p class="text-center text-sm text-muted" style="margin-top:1.5rem;">
-      Don't have an account?
-      <a href="{% url 'register' %}" style="color:var(--brand); font-weight:600; text-decoration:none;">Create one →</a>
-    </p>
-  </div>
+      <p class="auth-alt">New to DeleGate? <a href="{% url 'register' %}">Create an account</a></p>
+    </div>
+
+    <div class="auth-corner">{% include 'partials/_theme_switch.html' %}</div>
+  </main>
 </div>
-
-<script>
-function togglePwd(inputId, btn) {
-  const input = document.getElementById(inputId);
-  const isHidden = input.type === 'password';
-  input.type = isHidden ? 'text' : 'password';
-  btn.innerHTML = isHidden
-    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
-    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-}
-</script>
 {% endblock %}

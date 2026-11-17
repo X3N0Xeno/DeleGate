@@ -1,157 +1,152 @@
 {% extends 'base.html' %}
 {% block title %}Settings | DeleGate{% endblock %}
 
+{% block crumbs %}<strong>Settings</strong>{% endblock %}
+
 {% block content %}
-<div class="page-wrapper" style="max-width:720px;">
+<div class="page page-narrow">
 
-  <div style="margin-bottom:1.75rem;">
-    <h1 style="font-size:1.4rem; font-weight:700; color:var(--text-primary);">Workspace Settings</h1>
-    <p class="text-muted text-sm">Customise how DeleGate works for you.</p>
-  </div>
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">Settings</h1>
+      <p class="page-sub">How DeleGate looks and behaves for you.</p>
+    </div>
+  </header>
 
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}" style="margin-bottom:1.25rem;">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
+  <form method="POST" class="ledger-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="preferences">
 
-  <!-- Preferences Section -->
-  <div class="card" style="margin-bottom:1.25rem;">
-    <h2 style="font-size:0.95rem; font-weight:700; margin-bottom:1.25rem; color:var(--text-primary); display:flex; align-items:center; gap:0.5rem;">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-      Preferences
-    </h2>
-    <form method="POST">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="preferences">
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;">
-        <div class="form-group">
-          <label for="default_dashboard">Default Workspace Mode</label>
-          <select name="default_dashboard" id="default_dashboard">
-            <option value="CLAIMANT" {% if settings.default_dashboard == 'CLAIMANT' %}selected{% endif %}>
-              Claimant Pool (Mine!)
-            </option>
-            <option value="ASSIGNER" {% if settings.default_dashboard == 'ASSIGNER' %}selected{% endif %}>
-              Assigner Gate Hub
-            </option>
-          </select>
+    <section class="setting">
+      <div>
+        <h2 class="setting-title">Theme</h2>
+        <p class="setting-desc">Changes apply right away and follow you to other devices.</p>
+      </div>
+      <div class="setting-body">
+        <div class="themes" role="radiogroup" aria-label="Theme" data-theme-url="{% url 'user_settings:set_theme' %}">
+          {% for value, label in theme_choices %}
+          <button type="button" class="theme-opt" role="radio" data-swatch="{{ value }}" data-theme-set="{{ value }}" aria-checked="{% if ui_theme == value %}true{% else %}false{% endif %}">
+            <span class="theme-strip" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+            <span>
+              <strong>{{ label }}</strong>
+              <small>{% if value == 'kyoto' %}Botanical focus{% elif value == 'shiroi' %}Mineral clarity{% else %}Warm calm{% endif %}</small>
+            </span>
+          </button>
+          {% endfor %}
         </div>
 
-        <div class="form-group">
-          <label for="default_priority">Default Task Priority</label>
-          <select name="default_priority" id="default_priority">
+        {% for field_name, field_label, field_desc, field_val in toggles %}{% if field_name == 'compact_view' %}
+        <div class="toggle-row">
+          <div>
+            <strong>{{ field_label }}</strong>
+            <span class="hint">{{ field_desc }}</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" name="{{ field_name }}" data-density-toggle{% if field_val %} checked{% endif %} aria-label="{{ field_label }}">
+            <span class="switch-track"></span>
+          </label>
+        </div>
+        {% endif %}{% endfor %}
+      </div>
+    </section>
+
+    <section class="setting">
+      <div>
+        <h2 class="setting-title">Workspace</h2>
+        <p class="setting-desc">What opens when you sign in, and what new tasks start with.</p>
+      </div>
+      <div class="setting-body">
+        <div class="field">
+          <label for="default_dashboard">Open to</label>
+          <select class="select" name="default_dashboard" id="default_dashboard">
+            <option value="CLAIMANT"{% if settings.default_dashboard == 'CLAIMANT' %} selected{% endif %}>Open work (mine and finish tasks)</option>
+            <option value="ASSIGNER"{% if settings.default_dashboard == 'ASSIGNER' %} selected{% endif %}>Gate hub (dispatch, review, clear gates)</option>
+          </select>
+          <span class="hint">You can still switch from the account menu at any time.</span>
+        </div>
+        <div class="field">
+          <label for="default_priority">Default task priority</label>
+          <select class="select" name="default_priority" id="default_priority">
             {% for val, label in settings.PRIORITY_CHOICES %}
-            <option value="{{ val }}" {% if settings.default_priority == val %}selected{% endif %}>{{ label }}</option>
+            <option value="{{ val }}"{% if settings.default_priority == val %} selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
         </div>
       </div>
+    </section>
 
-      <!-- Toggle Switches -->
-      <div style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1.5rem;">
-        {% for field_name, field_label, field_desc, field_val in toggles %}
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:0.9rem 1rem; background:var(--surface-2); border-radius:var(--radius-sm);">
+    <section class="setting">
+      <div>
+        <h2 class="setting-title">Notifications</h2>
+        <p class="setting-desc">Choose what reaches your inbox.</p>
+      </div>
+      <div class="setting-body">
+        {% for field_name, field_label, field_desc, field_val in toggles %}{% if field_name != 'compact_view' %}
+        <div class="toggle-row">
           <div>
-            <div style="font-size:0.9rem; font-weight:600; color:var(--text-primary);">{{ field_label }}</div>
-            <div class="text-xs text-muted">{{ field_desc }}</div>
+            <strong>{{ field_label }}</strong>
+            <span class="hint">{{ field_desc }}</span>
           </div>
-          <label class="toggle-switch">
-            <input type="checkbox" name="{{ field_name }}" {% if field_val %}checked{% endif %}>
-            <span class="toggle-slider"></span>
+          <label class="switch">
+            <input type="checkbox" name="{{ field_name }}"{% if field_val %} checked{% endif %} aria-label="{{ field_label }}">
+            <span class="switch-track"></span>
           </label>
         </div>
-        {% endfor %}
+        {% endif %}{% endfor %}
       </div>
+    </section>
 
-      <button type="submit" class="btn btn-primary">Save Preferences</button>
-    </form>
-  </div>
+    <div class="setting-foot">
+      <button type="submit" class="btn">Save preferences</button>
+    </div>
+  </form>
 
-  <!-- Password Section -->
-  <div class="card">
-    <h2 style="font-size:0.95rem; font-weight:700; margin-bottom:1.25rem; color:var(--text-primary); display:flex; align-items:center; gap:0.5rem;">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Change Password
-    </h2>
-    <form method="POST" style="max-width:420px;">
-      {% csrf_token %}
-      <input type="hidden" name="action" value="password">
+  <form method="POST" class="ledger-form">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="password">
 
-      <div class="form-group" style="margin-bottom:1rem; position:relative;">
-        <label for="current_password">Current Password</label>
-        <input type="password" name="current_password" id="current_password" placeholder="••••••••" autocomplete="current-password">
-        <button type="button" onclick="togglePwd('current_password', this)"
-                style="position:absolute; right:0.75rem; top:2.1rem; background:none; border:none; cursor:pointer; color:var(--text-secondary); padding:0.2rem;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
+    <section class="setting">
+      <div>
+        <h2 class="setting-title">Password</h2>
+        <p class="setting-desc">Use at least 8 characters. You'll stay signed in on this device.</p>
       </div>
-
-      <div class="form-group" style="margin-bottom:1rem; position:relative;">
-        <label for="new_password">New Password</label>
-        <input type="password" name="new_password" id="new_password" placeholder="Min. 8 characters" autocomplete="new-password">
-        <button type="button" onclick="togglePwd('new_password', this)"
-                style="position:absolute; right:0.75rem; top:2.1rem; background:none; border:none; cursor:pointer; color:var(--text-secondary); padding:0.2rem;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
+      <div class="setting-body">
+        <div class="field">
+          <label for="current_password">Current password</label>
+          <div class="pw">
+            <input class="input" type="password" name="current_password" id="current_password" autocomplete="current-password">
+            <button type="button" class="icon-btn" data-toggle-password="current_password" aria-label="Show password" aria-pressed="false">
+              <svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico" aria-hidden="true" hidden><use href="#i-eyeoff"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="new_password">New password</label>
+          <div class="pw">
+            <input class="input" type="password" name="new_password" id="new_password" autocomplete="new-password">
+            <button type="button" class="icon-btn" data-toggle-password="new_password" aria-label="Show password" aria-pressed="false">
+              <svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico" aria-hidden="true" hidden><use href="#i-eyeoff"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="confirm_password">Confirm new password</label>
+          <div class="pw">
+            <input class="input" type="password" name="confirm_password" id="confirm_password" autocomplete="new-password">
+            <button type="button" class="icon-btn" data-toggle-password="confirm_password" aria-label="Show password" aria-pressed="false">
+              <svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg>
+              <svg class="ico" aria-hidden="true" hidden><use href="#i-eyeoff"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
+    </section>
 
-      <div class="form-group" style="margin-bottom:1.5rem; position:relative;">
-        <label for="confirm_password">Confirm Password</label>
-        <input type="password" name="confirm_password" id="confirm_password" placeholder="Repeat new password" autocomplete="new-password">
-        <button type="button" onclick="togglePwd('confirm_password', this)"
-                style="position:absolute; right:0.75rem; top:2.1rem; background:none; border:none; cursor:pointer; color:var(--text-secondary); padding:0.2rem;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
-      </div>
-
-      <button type="submit" class="btn btn-primary">Update Password</button>
-    </form>
-  </div>
+    <div class="setting-foot">
+      <button type="submit" class="btn">Update password</button>
+    </div>
+  </form>
 </div>
-
-<style>
-/* CSS Toggle Switch */
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-  flex-shrink: 0;
-}
-.toggle-switch input { opacity: 0; width: 0; height: 0; }
-.toggle-slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background: var(--border);
-  border-radius: var(--radius-pill);
-  transition: background 150ms ease;
-}
-.toggle-slider::before {
-  content: '';
-  position: absolute;
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background: white;
-  border-radius: 50%;
-  transition: transform 150ms ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-}
-.toggle-switch input:checked + .toggle-slider { background: var(--brand); }
-.toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
-</style>
-
-<script>
-function togglePwd(inputId, btn) {
-  const input = document.getElementById(inputId);
-  const isHidden = input.type === 'password';
-  input.type = isHidden ? 'text' : 'password';
-  btn.innerHTML = isHidden
-    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
-    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-}
-</script>
 {% endblock %}

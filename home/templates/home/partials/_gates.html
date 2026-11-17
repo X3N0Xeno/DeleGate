@@ -1,0 +1,53 @@
+{% load home_extras %}
+{# The stage-gate rail. Expects: gates, project, mode ('claim' or 'assign'). #}
+<ol class="gates" data-project="{{ project.pk }}" aria-label="Stage gates">
+  {% for gate in gates %}
+  <li class="gate"
+      data-gate="{{ gate.pk }}"
+      data-state="{% if gate.is_passed %}passed{% elif gate.is_unlocked %}active{% else %}locked{% endif %}"
+      style="--fill: {% if gate.is_passed %}100{% elif gate.is_unlocked %}{{ gate.progress_percent }}{% else %}0{% endif %}">
+    <div class="gate-rail" aria-hidden="true"><span class="gate-rail-fill"></span></div>
+
+    <div class="gate-head">
+      <span class="gate-no">G{{ gate.order }}</span>
+      <svg class="lock" viewBox="0 0 24 24" aria-hidden="true">
+        <path class="lock-shackle" d="M8 11V8a4 4 0 0 1 8 0v3"/>
+        <rect class="lock-body" x="5" y="11" width="14" height="9" rx="2"/>
+        <path class="lock-check" d="M9 15.5l2.2 2.2 3.8-4"/>
+      </svg>
+    </div>
+
+    <h3 class="gate-name">{{ gate.name|gate_title }}</h3>
+    <p class="gate-state">
+      {% if gate.is_passed %}Cleared
+      {% elif gate.is_unlocked %}Open for mining
+      {% else %}Opens when G{{ gate.order|minus_one }} clears{% endif %}
+    </p>
+
+    {% if gate.exit_criteria %}
+    <p class="gate-criteria">Exit: {{ gate.exit_criteria }}</p>
+    {% endif %}
+
+    <p class="gate-count mono">{{ gate.completed_tasks }}/{{ gate.total_tasks }} done</p>
+
+    {% if mode == 'assign' %}
+    <div class="gate-actions">
+      {% if gate.is_unlocked and not gate.is_passed %}
+        {% if gate.ready_to_pass %}
+        <form method="POST" action="{% url 'gate_pass' gate.pk %}"
+              data-confirm="All {{ gate.total_tasks }} task{{ gate.total_tasks|pluralize }} in G{{ gate.order }} are complete. Clearing it unlocks the next gate, if there is one, for mining."
+              data-confirm-title="Clear G{{ gate.order }}?"
+              data-confirm-label="Clear gate">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm">Clear gate</button>
+        </form>
+        {% else %}
+        <button type="button" class="btn btn-sm" disabled aria-describedby="gate-hint-{{ gate.pk }}">Clear gate</button>
+        <p class="hint" id="gate-hint-{{ gate.pk }}">Every task here must be completed first.</p>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ol>

@@ -7,7 +7,7 @@ from django.utils import timezone
 from datetime import date, timedelta
 
 from .models import Project, StageGate, DelegationTask, TaskComment
-from user_profile.models import Profile
+from user_profile.routing import workspace_url_name
 
 
 def ensure_starter_project(user):
@@ -151,10 +151,7 @@ def home_view(request):
     based on their Profile preferred_role.
     """
     ensure_starter_project(request.user)
-    profile, _ = Profile.objects.get_or_create(user=request.user)
-    if profile.preferred_role == 'ASSIGNER':
-        return redirect('assigner_dashboard')
-    return redirect('claimant_dashboard')
+    return redirect(workspace_url_name(request.user))
 
 
 @login_required
@@ -319,7 +316,8 @@ def assigner_dashboard(request):
     status_filter = request.GET.get('status', 'all')
     gate_filter = request.GET.get('gate', 'all')
 
-    tasks_qs = DelegationTask.objects.filter(project=project).select_related('gate', 'claimed_by', 'created_by').prefetch_related('comments__author').order_by('-created_at')
+    # Ordered by gate first so the template can group the board under each gate.
+    tasks_qs = DelegationTask.objects.filter(project=project).select_related('gate', 'claimed_by', 'created_by').prefetch_related('comments__author').order_by('gate__order', '-created_at')
 
     if gate_filter != 'all':
         tasks_qs = tasks_qs.filter(gate_id=gate_filter)
@@ -406,7 +404,7 @@ def mine_task(request, pk):
                 task.status = 'CLAIMED'
                 task.claimed_at = timezone.now()
                 task.save()
-                messages.success(request, f'⚡ Mined! "{task.title}" ({task.effort_points} pts) is now in your active queue!')
+                messages.success(request, f'Mined "{task.title}" ({task.effort_points} pts). It\'s in your queue now.')
 
     referer = request.META.get('HTTP_REFERER')
     return redirect(referer or 'claimant_dashboard')
@@ -489,7 +487,7 @@ def task_manager_review(request, pk):
             author=request.user,
             body="[Manager Approved]: Task verified and marked as COMPLETED."
         )
-        messages.success(request, f'🎉 Task "{task.title}" approved and marked as COMPLETED!')
+        messages.success(request, f'Approved "{task.title}". It\'s marked completed.')
 
     elif review_action == 'return':
         feedback = request.POST.get('feedback', '').strip() or 'Revisions requested by manager.'
@@ -619,12 +617,12 @@ def gate_pass(request, pk):
         next_gate.save()
         messages.success(
             request,
-            f'🎉 Gate {gate.order} ({gate.name}) approved and passed! Gate {next_gate.order} ({next_gate.name}) is now unlocked for mining.'
+            f'Gate {gate.order} ({gate.name}) is cleared. Gate {next_gate.order} ({next_gate.name}) is now unlocked for mining.'
         )
     else:
         messages.success(
             request,
-            f'🎉 Gate {gate.order} ({gate.name}) passed! All gates in "{gate.project.name}" are successfully completed!'
+            f'Gate {gate.order} ({gate.name}) is cleared. Every gate in "{gate.project.name}" is now complete.'
         )
 
     referer = request.META.get('HTTP_REFERER')
