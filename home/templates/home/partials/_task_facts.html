@@ -13,6 +13,7 @@
     {% if task.due_date %}
     <span class="sheet-fact mono due{% if task.due_date < today and task.status != 'COMPLETED' %} is-late{% endif %}">Due {{ task.due_date|date:"M j, Y" }}</span>
     {% endif %}
+    {% if task.sprint %}<span class="sheet-fact mono">Sprint: {{ task.sprint.name }}</span>{% endif %}
     {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
   </div>
 </div>

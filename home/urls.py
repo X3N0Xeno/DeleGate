@@ -14,7 +14,10 @@ urlpatterns = [
     path('task/<int:pk>/link/add/', views.task_add_link, name='task_add_link'),
     path('task/link/<int:link_pk>/delete/', views.task_delete_link, name='task_delete_link'),
     path('task/<int:pk>/delete/', views.task_delete, name='task_delete'),
+    path('task/<int:pk>/sprint/', views.task_set_sprint, name='task_set_sprint'),
+    path('task/<int:pk>/quick-status/', views.task_quick_status, name='task_quick_status'),
     path('gate/<int:pk>/pass/', views.gate_pass, name='gate_pass'),
     path('project/<int:pk>/add-gate/', views.add_gate, name='add_gate'),
+    path('project/<int:pk>/add-sprint/', views.create_sprint, name='create_sprint'),
     path('project/create/', views.create_project, name='create_project'),
 ]

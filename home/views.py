@@ -1,12 +1,13 @@
+import calendar
+from datetime import date, timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db import transaction, models
 from django.utils import timezone
-from datetime import date, timedelta
 
-from .models import Project, StageGate, DelegationTask, TaskComment, TaskLink
+from .models import Project, StageGate, DelegationTask, TaskComment, TaskLink, Sprint
 from user_profile.routing import workspace_url_name
 
 
@@ -17,19 +18,69 @@ def ensure_starter_project(user):
     """
     Auto-seed helper: If no Project exists in the database, automatically creates
     a realistic starter project ('DeleGate Core Platform v1.0') owned by the current user
-    with 3 sequential Stage Gates and realistic starter tasks.
+    with 3 sequential Stage Gates, active/upcoming Sprints, and realistic starter tasks.
     """
     global _STARTER_SEEDED
     if _STARTER_SEEDED:
         return
+    today = timezone.localdate()
     if Project.objects.exists():
         _STARTER_SEEDED = True
-        return Project.objects.first()
+        proj = Project.objects.first()
+        if proj and proj.sprints.count() == 0:
+            s1 = Sprint.objects.create(
+                project=proj,
+                name="Sprint 1: Genesis Architecture",
+                goal="Finalize core governance schemas and foundational UI components",
+                start_date=today - timedelta(days=3),
+                end_date=today + timedelta(days=11),
+                is_active=True,
+            )
+            s2 = Sprint.objects.create(
+                project=proj,
+                name="Sprint 2: Concurrency & Engine Scaling",
+                goal="Implement atomic claim controller and cascade gate unlocks",
+                start_date=today + timedelta(days=12),
+                end_date=today + timedelta(days=26),
+                is_active=False,
+            )
+            for idx, g in enumerate(proj.gates.order_by('order')):
+                if not g.target_date:
+                    g.target_date = today + timedelta(days=(idx + 1) * 6)
+                    g.save()
+            for idx, t in enumerate(proj.tasks.order_by('id')):
+                if not t.start_date:
+                    t.start_date = today - timedelta(days=2) if idx < 3 else today + timedelta(days=idx * 2)
+                if not t.target_release_date:
+                    t.target_release_date = t.due_date or (t.start_date + timedelta(days=4))
+                if t.sprint is None:
+                    if idx < 3:
+                        t.sprint = s1
+                    elif idx < 5:
+                        t.sprint = s2
+                t.save()
+        return proj
 
     proj = Project.objects.create(
         name="DeleGate Core Platform v1.0",
         description="Mission-critical cloud delegation engine featuring Stage-Gate governance and collaborative claimant mining.",
         owner=user,
+    )
+    s1 = Sprint.objects.create(
+        project=proj,
+        name="Sprint 1: Genesis Architecture",
+        goal="Finalize core governance schemas and foundational UI components",
+        start_date=today - timedelta(days=3),
+        end_date=today + timedelta(days=11),
+        is_active=True,
+    )
+    s2 = Sprint.objects.create(
+        project=proj,
+        name="Sprint 2: Concurrency & Engine Scaling",
+        goal="Implement atomic claim controller and cascade gate unlocks",
+        start_date=today + timedelta(days=12),
+        end_date=today + timedelta(days=26),
+        is_active=False,
     )
 
     # Gate 1: Unlocked
@@ -41,10 +92,12 @@ def ensure_starter_project(user):
         is_unlocked=True,
         is_passed=False,
         unlocked_at=timezone.now(),
+        target_date=today + timedelta(days=4),
     )
     DelegationTask.objects.create(
         project=proj,
         gate=g1,
+        sprint=s1,
         title="Design Stage-Gate Data Schema & Locking Invariants",
         description="Specify database constraints, gate readiness triggers, and atomic claim transactions.",
         created_by=user,
@@ -52,11 +105,14 @@ def ensure_starter_project(user):
         effort_points=5,
         status="OPEN",
         is_multiclaimable=False,
-        due_date=timezone.localdate() + timedelta(days=3),
+        start_date=today - timedelta(days=2),
+        due_date=today + timedelta(days=3),
+        target_release_date=today + timedelta(days=4),
     )
     DelegationTask.objects.create(
         project=proj,
         gate=g1,
+        sprint=s1,
         title="Wireframe Claimant Acquisition Pool & Visual Stepper",
         description="Create high-fidelity zen component mockups for live mining cards and stepper indicators.",
         created_by=user,
@@ -64,11 +120,14 @@ def ensure_starter_project(user):
         effort_points=3,
         status="OPEN",
         is_multiclaimable=True,
-        due_date=timezone.localdate() + timedelta(days=4),
+        start_date=today,
+        due_date=today + timedelta(days=4),
+        target_release_date=today + timedelta(days=4),
     )
     DelegationTask.objects.create(
         project=proj,
         gate=g1,
+        sprint=s1,
         title="Product Requirements & Scope Alignment",
         description="Synthesize stakeholder objectives into verifiable exit criteria.",
         created_by=user,
@@ -77,7 +136,9 @@ def ensure_starter_project(user):
         effort_points=2,
         status="COMPLETED",
         is_multiclaimable=False,
-        due_date=timezone.localdate() - timedelta(days=1),
+        start_date=today - timedelta(days=4),
+        due_date=today - timedelta(days=1),
+        target_release_date=today - timedelta(days=1),
         claimed_at=timezone.now(),
     )
 
@@ -89,10 +150,12 @@ def ensure_starter_project(user):
         exit_criteria="All core endpoints tested with 100% contract compliance",
         is_unlocked=False,
         is_passed=False,
+        target_date=today + timedelta(days=12),
     )
     DelegationTask.objects.create(
         project=proj,
         gate=g2,
+        sprint=s2,
         title="Build Concurrency-Safe Mining & Unlock Controller",
         description="Implement atomic status transitions to prevent race conditions during peak mining.",
         created_by=user,
@@ -100,11 +163,14 @@ def ensure_starter_project(user):
         effort_points=8,
         status="OPEN",
         is_multiclaimable=False,
-        due_date=timezone.localdate() + timedelta(days=7),
+        start_date=today + timedelta(days=5),
+        due_date=today + timedelta(days=7),
+        target_release_date=today + timedelta(days=12),
     )
     DelegationTask.objects.create(
         project=proj,
         gate=g2,
+        sprint=s2,
         title="Integrate Gate Sign-off Workflow & Cascade Unlocks",
         description="Automate sequential unlocking of Gate N+1 upon approval of Gate N.",
         created_by=user,
@@ -112,7 +178,9 @@ def ensure_starter_project(user):
         effort_points=5,
         status="OPEN",
         is_multiclaimable=True,
-        due_date=timezone.localdate() + timedelta(days=9),
+        start_date=today + timedelta(days=7),
+        due_date=today + timedelta(days=9),
+        target_release_date=today + timedelta(days=12),
     )
 
     # Gate 3: Locked behind Gate 2
@@ -123,6 +191,7 @@ def ensure_starter_project(user):
         exit_criteria="Penetration testing cleared & monitoring alerts configured",
         is_unlocked=False,
         is_passed=False,
+        target_date=today + timedelta(days=20),
     )
     DelegationTask.objects.create(
         project=proj,
@@ -134,7 +203,9 @@ def ensure_starter_project(user):
         effort_points=5,
         status="OPEN",
         is_multiclaimable=False,
-        due_date=timezone.localdate() + timedelta(days=14),
+        start_date=today + timedelta(days=14),
+        due_date=today + timedelta(days=16),
+        target_release_date=today + timedelta(days=20),
     )
     DelegationTask.objects.create(
         project=proj,
@@ -146,9 +217,182 @@ def ensure_starter_project(user):
         effort_points=3,
         status="OPEN",
         is_multiclaimable=False,
-        due_date=timezone.localdate() + timedelta(days=16),
+        start_date=today + timedelta(days=16),
+        due_date=today + timedelta(days=19),
+        target_release_date=today + timedelta(days=20),
     )
     return proj
+
+
+def get_work_views_context(project, current_view, request):
+    if not project:
+        return {}
+    today = timezone.localdate()
+
+    all_tasks = list(
+        DelegationTask.objects.filter(project=project)
+        .select_related('gate', 'sprint', 'claimed_by', 'created_by')
+        .prefetch_related('links', 'comments__author')
+        .order_by('gate__order', '-priority', 'created_at')
+    )
+
+    # 1. Kanban Columns
+    kanban_cols = [
+        {'status': 'OPEN', 'label': 'Open Pool', 'color': 'var(--neon-cyan, #06b6d4)', 'tasks': []},
+        {'status': 'CLAIMED', 'label': 'Claimed', 'color': 'var(--neon-gold, #f59e0b)', 'tasks': []},
+        {'status': 'IN_PROGRESS', 'label': 'In Progress', 'color': 'var(--neon-amber, #f97316)', 'tasks': []},
+        {'status': 'IN_REVIEW', 'label': 'In Review', 'color': 'var(--neon-purple, #a855f7)', 'tasks': []},
+        {'status': 'COMPLETED', 'label': 'Completed', 'color': 'var(--neon-green, #10b981)', 'tasks': []},
+    ]
+    col_map = {col['status']: col for col in kanban_cols}
+    for t in all_tasks:
+        if t.status in col_map:
+            col_map[t.status]['tasks'].append(t)
+
+    for col in kanban_cols:
+        col['count'] = len(col['tasks'])
+        col['points'] = sum(t.effort_points for t in col['tasks'])
+
+    # 2. Backlogs & Sprints
+    sprints = list(project.sprints.all().prefetch_related('tasks'))
+    active_sprint = next((s for s in sprints if s.is_active), None)
+    upcoming_sprints = [s for s in sprints if not s.is_active]
+
+    active_sprint_tasks = [t for t in all_tasks if t.sprint_id == (active_sprint.id if active_sprint else None)]
+    backlog_tasks = [t for t in all_tasks if t.sprint_id is None]
+
+    active_sprint_total_pts = sum(t.effort_points for t in active_sprint_tasks)
+    active_sprint_completed_pts = sum(t.effort_points for t in active_sprint_tasks if t.status == 'COMPLETED')
+    active_sprint_progress = (
+        int(round((active_sprint_completed_pts / active_sprint_total_pts) * 100))
+        if active_sprint_total_pts > 0 else 0
+    )
+    backlog_total_pts = sum(t.effort_points for t in backlog_tasks)
+
+    # 3. Visual Timeline & Roadmaps (Gantt schedule)
+    timeline_start = today - timedelta(days=7)
+    timeline_end = today + timedelta(days=21)
+    total_days = max(1, (timeline_end - timeline_start).days)
+
+    today_offset_days = (today - timeline_start).days
+    today_percent = max(0.0, min(100.0, (today_offset_days / total_days) * 100))
+
+    timeline_days = []
+    curr = timeline_start
+    while curr <= timeline_end:
+        timeline_days.append({
+            'date': curr,
+            'day_num': curr.day,
+            'day_name': curr.strftime('%a'),
+            'month_name': curr.strftime('%b'),
+            'is_today': curr == today,
+            'is_weekend': curr.weekday() in (5, 6),
+        })
+        curr += timedelta(days=1)
+
+    timeline_gates = []
+    for g in project.gates.all().order_by('order'):
+        t_date = g.target_date or (today + timedelta(days=g.order * 6))
+        offset = (t_date - timeline_start).days
+        pos_percent = max(1.0, min(96.0, (offset / total_days) * 100))
+        timeline_gates.append({
+            'gate': g,
+            'date': t_date,
+            'percent': round(pos_percent, 1),
+        })
+
+    timeline_sprints = []
+    for s in sprints:
+        s_start = s.start_date or today
+        s_end = s.end_date or (s_start + timedelta(days=14))
+        start_offset = (s_start - timeline_start).days
+        end_offset = (s_end - timeline_start).days
+        left_pct = max(0.0, min(100.0, (start_offset / total_days) * 100))
+        right_pct = max(0.0, min(100.0, (end_offset / total_days) * 100))
+        width_pct = max(4.0, right_pct - left_pct)
+        timeline_sprints.append({
+            'sprint': s,
+            'left': round(left_pct, 1),
+            'width': round(width_pct, 1),
+        })
+
+    timeline_tasks = []
+    for t in all_tasks:
+        t_start = t.start_date or t.created_at.date()
+        t_end = t.target_release_date or t.due_date or (t_start + timedelta(days=3))
+        if t_end < t_start:
+            t_end = t_start + timedelta(days=1)
+        start_offset = (t_start - timeline_start).days
+        end_offset = (t_end - timeline_start).days
+        left_pct = max(0.0, min(95.0, (start_offset / total_days) * 100))
+        right_pct = max(left_pct + 4.0, min(100.0, (end_offset / total_days) * 100))
+        width_pct = max(4.0, right_pct - left_pct)
+
+        if t.status == 'COMPLETED':
+            p_fill = 100
+        elif t.status == 'IN_REVIEW':
+            p_fill = 80
+        elif t.status == 'IN_PROGRESS':
+            p_fill = 50
+        elif t.status == 'CLAIMED':
+            p_fill = 25
+        else:
+            p_fill = 0
+
+        timeline_tasks.append({
+            'task': t,
+            'start_date': t_start,
+            'end_date': t_end,
+            'left': round(left_pct, 1),
+            'width': round(width_pct, 1),
+            'progress': p_fill,
+        })
+
+    # 4. Calendar View (current month: Sun to Sat)
+    cal = calendar.Calendar(firstweekday=6)
+    month_days = cal.monthdatescalendar(today.year, today.month)
+    tasks_by_date = {}
+    for t in all_tasks:
+        d = t.due_date or t.target_release_date
+        if d:
+            tasks_by_date.setdefault(d, []).append(t)
+
+    calendar_weeks = []
+    for week in month_days:
+        week_data = []
+        for d in week:
+            week_data.append({
+                'date': d,
+                'day': d.day,
+                'is_current_month': (d.month == today.month),
+                'is_today': (d == today),
+                'tasks': tasks_by_date.get(d, []),
+            })
+        calendar_weeks.append(week_data)
+
+    current_month_name = today.strftime('%B %Y')
+
+    return {
+        'current_view': current_view,
+        'kanban_cols': kanban_cols,
+        'sprints': sprints,
+        'active_sprint': active_sprint,
+        'upcoming_sprints': upcoming_sprints,
+        'active_sprint_tasks': active_sprint_tasks,
+        'backlog_tasks': backlog_tasks,
+        'active_sprint_total_pts': active_sprint_total_pts,
+        'active_sprint_completed_pts': active_sprint_completed_pts,
+        'active_sprint_progress': active_sprint_progress,
+        'backlog_total_pts': backlog_total_pts,
+        'timeline_days': timeline_days,
+        'timeline_gates': timeline_gates,
+        'timeline_sprints': timeline_sprints,
+        'timeline_tasks': timeline_tasks,
+        'today_percent': round(today_percent, 1),
+        'calendar_weeks': calendar_weeks,
+        'current_month_name': current_month_name,
+        'all_tasks': all_tasks,
+    }
 
 
 @login_required
@@ -170,6 +414,7 @@ def claimant_dashboard(request):
     - Live 'Mine!' Pool (unlocked OPEN tasks, single-task mining limit unless Multi-Claim)
     - Dimmed locked preview
     - Claimant's personal execution queue with progress notes & submission for manager review
+    - Flexible Work Views (Kanban, Backlogs & Sprints, Timeline Roadmap, Calendar, Table)
     """
     ensure_starter_project(request.user)
     projects = list(Project.objects.all().order_by('-created_at'))
@@ -182,6 +427,9 @@ def claimant_dashboard(request):
             'projects': [],
             'project': None,
         })
+
+    current_view = request.GET.get('view', 'gates')
+    work_views = get_work_views_context(project, current_view, request)
 
     gates = list(project.gates.annotate(
         total_tasks_count=models.Count('tasks'),
@@ -218,6 +466,11 @@ def claimant_dashboard(request):
         project=project,
         claimed_by=request.user,
     ).select_related('gate', 'created_by').prefetch_related('comments__author', 'links').order_by('-created_at'))
+
+    # All project tasks (for template drawers across all work views)
+    all_project_tasks = list(DelegationTask.objects.filter(
+        project=project
+    ).select_related('gate', 'created_by', 'claimed_by', 'sprint').prefetch_related('comments__author', 'links').order_by('gate__order', '-created_at'))
 
     # In-memory tab counts & KPIs (0 extra database queries)
     my_counts = {
@@ -256,6 +509,9 @@ def claimant_dashboard(request):
     return render(request, 'home/claimant_dashboard.html', {
         'projects': projects,
         'project': project,
+        'current_view': current_view,
+        'work_views': work_views,
+        'all_project_tasks': all_project_tasks,
         'gates': gates,
         'open_pool_tasks': open_pool_tasks,
         'locked_preview_tasks': locked_preview_tasks,
@@ -282,6 +538,7 @@ def assigner_dashboard(request):
     - Stage-Gate Pipeline stepper with Gate Approval & Unlock actions (100% completion enforced)
     - Task Dispatcher Composer with is_multiclaimable flag
     - Gate-grouped task & claimant oversight board with Manager Review (Approve or Return/Dissolve)
+    - Flexible Work Views (Kanban, Backlogs & Sprints, Timeline Roadmap, Calendar, Table)
     """
     ensure_starter_project(request.user)
     projects = list(Project.objects.all().order_by('-created_at'))
@@ -294,6 +551,9 @@ def assigner_dashboard(request):
             'projects': [],
             'project': None,
         })
+
+    current_view = request.GET.get('view', 'gates')
+    work_views = get_work_views_context(project, current_view, request)
 
     # Handle Task Creation from Composer
     if request.method == 'POST' and request.POST.get('action') == 'dispatch_task':
@@ -329,7 +589,7 @@ def assigner_dashboard(request):
                         TaskLink.objects.create(task=task, url=raw)
             multi_note = " [Multi-Claim]" if is_multiclaimable else ""
             messages.success(request, f'Dispatched "{task.title}" ({task.effort_points} pts){multi_note} into {gate.name}.')
-            return redirect(f"/home/assign/?project={project.pk}")
+            return redirect(f"/home/assign/?project={project.pk}&view={current_view}")
 
     gates = list(project.gates.annotate(
         total_tasks_count=models.Count('tasks'),
@@ -345,7 +605,7 @@ def assigner_dashboard(request):
     gate_filter = request.GET.get('gate', 'all')
 
     # Ordered by gate first so the template can group the board under each gate.
-    all_tasks = list(DelegationTask.objects.filter(project=project).select_related('gate', 'claimed_by', 'created_by').prefetch_related('comments__author', 'links').order_by('gate__order', '-created_at'))
+    all_tasks = list(DelegationTask.objects.filter(project=project).select_related('gate', 'claimed_by', 'created_by', 'sprint').prefetch_related('comments__author', 'links').order_by('gate__order', '-created_at'))
 
     if gate_filter != 'all':
         tasks_for_counts = [t for t in all_tasks if str(t.gate_id) == str(gate_filter)]
@@ -385,6 +645,8 @@ def assigner_dashboard(request):
     return render(request, 'home/assigner_dashboard.html', {
         'projects': projects,
         'project': project,
+        'current_view': current_view,
+        'work_views': work_views,
         'gates': gates,
         'tasks': filtered_tasks,
         'all_tasks': all_tasks,
@@ -563,6 +825,86 @@ def task_manager_review(request, pk):
 
 @login_required
 @require_POST
+def task_set_sprint(request, pk):
+    """
+    Assign a task to a sprint, or move it to the backlog.
+    """
+    task = get_object_or_404(DelegationTask, pk=pk)
+    sprint_id = request.POST.get('sprint_id', '').strip()
+    if sprint_id in ('', 'none', 'backlog'):
+        task.sprint = None
+        task.save()
+        messages.success(request, f'Moved "{task.title}" to Product Backlog.')
+    else:
+        sprint = get_object_or_404(Sprint, pk=sprint_id, project=task.project)
+        task.sprint = sprint
+        task.save()
+        messages.success(request, f'Moved "{task.title}" into {sprint.name}.')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or '/')
+
+
+@login_required
+@require_POST
+def task_quick_status(request, pk):
+    """
+    Quick status transition for Kanban and Spreadsheet work views.
+    """
+    task = get_object_or_404(DelegationTask, pk=pk)
+    target_status = request.POST.get('status')
+    valid_statuses = [c[0] for c in DelegationTask.STATUS_CHOICES]
+
+    if target_status in valid_statuses:
+        if target_status == 'OPEN':
+            task.claimed_by = None
+            task.status = 'OPEN'
+        elif target_status in ('CLAIMED', 'IN_PROGRESS'):
+            if not task.claimed_by:
+                task.claimed_by = request.user
+                task.claimed_at = timezone.now()
+            task.status = target_status
+        elif target_status == 'IN_REVIEW':
+            task.status = 'IN_REVIEW'
+        elif target_status == 'COMPLETED':
+            task.status = 'COMPLETED'
+        task.save()
+        messages.success(request, f'Updated "{task.title}" to {task.get_status_display()}.')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or '/')
+
+
+@login_required
+@require_POST
+def create_sprint(request, pk):
+    """
+    Create a new iteration Sprint for a project.
+    """
+    project = get_object_or_404(Project, pk=pk)
+    name = request.POST.get('name', '').strip()
+    goal = request.POST.get('goal', '').strip()
+    start_date = request.POST.get('start_date') or None
+    end_date = request.POST.get('end_date') or None
+
+    if name:
+        s = Sprint.objects.create(
+            project=project,
+            name=name,
+            goal=goal,
+            start_date=start_date,
+            end_date=end_date,
+            is_active=False
+        )
+        messages.success(request, f'Created sprint "{s.name}".')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or '/')
+
+
+
+@login_required
+@require_POST
 def task_toggle_blocker(request, pk):
     """
     Flag or clear a blocker on a task.
@@ -698,6 +1040,86 @@ def gate_pass(request, pk):
 
 @login_required
 @require_POST
+def task_set_sprint(request, pk):
+    """
+    Assign a task to a sprint, or move it to the backlog.
+    """
+    task = get_object_or_404(DelegationTask, pk=pk)
+    sprint_id = request.POST.get('sprint_id', '').strip()
+    if sprint_id in ('', 'none', 'backlog'):
+        task.sprint = None
+        task.save()
+        messages.success(request, f'Moved "{task.title}" to Product Backlog.')
+    else:
+        sprint = get_object_or_404(Sprint, pk=sprint_id, project=task.project)
+        task.sprint = sprint
+        task.save()
+        messages.success(request, f'Moved "{task.title}" into {sprint.name}.')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or '/')
+
+
+@login_required
+@require_POST
+def task_quick_status(request, pk):
+    """
+    Quick status transition for Kanban and Spreadsheet work views.
+    """
+    task = get_object_or_404(DelegationTask, pk=pk)
+    target_status = request.POST.get('status')
+    valid_statuses = [c[0] for c in DelegationTask.STATUS_CHOICES]
+
+    if target_status in valid_statuses:
+        if target_status == 'OPEN':
+            task.claimed_by = None
+            task.status = 'OPEN'
+        elif target_status in ('CLAIMED', 'IN_PROGRESS'):
+            if not task.claimed_by:
+                task.claimed_by = request.user
+                task.claimed_at = timezone.now()
+            task.status = target_status
+        elif target_status == 'IN_REVIEW':
+            task.status = 'IN_REVIEW'
+        elif target_status == 'COMPLETED':
+            task.status = 'COMPLETED'
+        task.save()
+        messages.success(request, f'Updated "{task.title}" to {task.get_status_display()}.')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or '/')
+
+
+@login_required
+@require_POST
+def create_sprint(request, pk):
+    """
+    Create a new iteration Sprint for a project.
+    """
+    project = get_object_or_404(Project, pk=pk)
+    name = request.POST.get('name', '').strip()
+    goal = request.POST.get('goal', '').strip()
+    start_date = request.POST.get('start_date') or None
+    end_date = request.POST.get('end_date') or None
+
+    if name:
+        s = Sprint.objects.create(
+            project=project,
+            name=name,
+            goal=goal,
+            start_date=start_date,
+            end_date=end_date,
+            is_active=False
+        )
+        messages.success(request, f'Created sprint "{s.name}".')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or '/')
+
+
+
+@login_required
+@require_POST
 def add_gate(request, pk):
     """
     Add a new Stage Gate to a project.
@@ -751,3 +1173,83 @@ def create_project(request):
 
     referer = request.META.get('HTTP_REFERER')
     return redirect(referer or 'assigner_dashboard')
+
+
+@login_required
+@require_POST
+def task_set_sprint(request, pk):
+    """
+    Assign a task to a sprint, or move it to the backlog.
+    """
+    task = get_object_or_404(DelegationTask, pk=pk)
+    sprint_id = request.POST.get('sprint_id', '').strip()
+    if sprint_id in ('', 'none', 'backlog'):
+        task.sprint = None
+        task.save()
+        messages.success(request, f'Moved "{task.title}" to Product Backlog.')
+    else:
+        sprint = get_object_or_404(Sprint, pk=sprint_id, project=task.project)
+        task.sprint = sprint
+        task.save()
+        messages.success(request, f'Moved "{task.title}" into {sprint.name}.')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or '/')
+
+
+@login_required
+@require_POST
+def task_quick_status(request, pk):
+    """
+    Quick status transition for Kanban and Spreadsheet work views.
+    """
+    task = get_object_or_404(DelegationTask, pk=pk)
+    target_status = request.POST.get('status')
+    valid_statuses = [c[0] for c in DelegationTask.STATUS_CHOICES]
+
+    if target_status in valid_statuses:
+        if target_status == 'OPEN':
+            task.claimed_by = None
+            task.status = 'OPEN'
+        elif target_status in ('CLAIMED', 'IN_PROGRESS'):
+            if not task.claimed_by:
+                task.claimed_by = request.user
+                task.claimed_at = timezone.now()
+            task.status = target_status
+        elif target_status == 'IN_REVIEW':
+            task.status = 'IN_REVIEW'
+        elif target_status == 'COMPLETED':
+            task.status = 'COMPLETED'
+        task.save()
+        messages.success(request, f'Updated "{task.title}" to {task.get_status_display()}.')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or '/')
+
+
+@login_required
+@require_POST
+def create_sprint(request, pk):
+    """
+    Create a new iteration Sprint for a project.
+    """
+    project = get_object_or_404(Project, pk=pk)
+    name = request.POST.get('name', '').strip()
+    goal = request.POST.get('goal', '').strip()
+    start_date = request.POST.get('start_date') or None
+    end_date = request.POST.get('end_date') or None
+
+    if name:
+        s = Sprint.objects.create(
+            project=project,
+            name=name,
+            goal=goal,
+            start_date=start_date,
+            end_date=end_date,
+            is_active=False
+        )
+        messages.success(request, f'Created sprint "{s.name}".')
+
+    referer = request.META.get('HTTP_REFERER')
+    return redirect(referer or '/')
+

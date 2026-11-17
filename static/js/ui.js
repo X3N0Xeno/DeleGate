@@ -171,7 +171,9 @@
     $('#drawer-kicker').textContent = tpl.getAttribute('data-kicker') || '';
     drawer.setAttribute('data-tpl', tplId);
     drawerBody.scrollTop = 0;
-    if (!drawer.open) drawer.showModal();
+    document.documentElement.classList.add('drawer-open');
+    document.body.classList.add('drawer-open');
+    if (!drawer.open) drawer.show();
     requestAnimationFrame(function () {
       requestAnimationFrame(function () { drawer.classList.add('is-open'); });
     });
@@ -182,6 +184,8 @@
   function closeDrawer() {
     if (!drawer || !drawer.open) return;
     drawer.classList.remove('is-open');
+    document.documentElement.classList.remove('drawer-open');
+    document.body.classList.remove('drawer-open');
     clearTimeout(closing);
     closing = setTimeout(function () { if (drawer.open) drawer.close(); }, reduceMotion ? 0 : 300);
   }
@@ -190,6 +194,8 @@
     drawer.addEventListener('cancel', function (e) { e.preventDefault(); closeDrawer(); });
     drawer.addEventListener('close', function () {
       drawer.classList.remove('is-open');
+      document.documentElement.classList.remove('drawer-open');
+      document.body.classList.remove('drawer-open');
       drawer.removeAttribute('data-tpl');
       drawerBody.replaceChildren();
     });
@@ -216,6 +222,8 @@
   function settle(result) {
     if (!dialog || !dialog.open) return;
     dialog.classList.remove('is-open');
+    document.documentElement.classList.remove('drawer-open');
+    document.body.classList.remove('drawer-open');
     var resolve = pendingResolve;
     pendingResolve = null;
     setTimeout(function () { if (dialog.open) dialog.close(); }, reduceMotion ? 0 : 200);
@@ -231,7 +239,9 @@
       var ok = $('#confirm-ok');
       ok.textContent = opts.label || 'Confirm';
       ok.className = 'btn ' + (opts.tone === 'danger' ? 'btn-critical' : '');
-      dialog.showModal();
+      document.documentElement.classList.add('drawer-open');
+      document.body.classList.add('drawer-open');
+      if (!dialog.open) dialog.show();
       requestAnimationFrame(function () { dialog.classList.add('is-open'); });
       (opts.tone === 'danger' ? $('#confirm-cancel') : ok).focus();
     });
@@ -453,36 +463,6 @@
     $$('details.menu[open]').forEach(function (m) { if (m !== except) m.removeAttribute('open'); });
   }
   document.addEventListener('click', function (e) { closeMenus(e.target.closest('details.menu')); });
-
-  // Navigation toggle (Desktop collapses sidebar to maximize workstation, Mobile opens drawer)
-  function toggleNav() {
-    if (window.innerWidth <= 900) {
-      var open = !document.body.classList.contains('nav-open');
-      document.body.classList.toggle('nav-open', open);
-      var btn = $('[data-nav-toggle]');
-      if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    } else {
-      var collapsed = document.body.classList.toggle('sidebar-collapsed');
-      store.set('dg-sidebar-collapsed', collapsed ? '1' : '0');
-      var navBtn = $('[data-nav-toggle]');
-      if (navBtn) navBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    }
-  }
-
-  // Restore desktop sidebar collapsed preference
-  if (window.innerWidth > 900 && store.get('dg-sidebar-collapsed') === '1') {
-    document.body.classList.add('sidebar-collapsed');
-    var navBtn = $('[data-nav-toggle]');
-    if (navBtn) navBtn.setAttribute('aria-expanded', 'false');
-  }
-
-  document.addEventListener('click', function (e) {
-    if (e.target.closest('[data-nav-toggle]')) {
-      toggleNav();
-    } else if (e.target.closest('.nav-scrim')) {
-      document.body.classList.remove('nav-open');
-    }
-  });
 
   // ------------------------------------------------ Direct toast feedback handlers
   // Universal feedback on click (replaces hover-only tooltips)

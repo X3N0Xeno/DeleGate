@@ -17,8 +17,13 @@
 .auth-aside .brand { padding: 0; }
 .auth-statement { max-width: 560px; }
 .auth-statement h2 {
-  max-width: 13ch;
-  font-size: clamp(2.25rem, 3.6vw, 3.25rem); font-weight: 600; letter-spacing: -0.045em; line-height: 1.04;
+  max-width: 14ch;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: clamp(2.35rem, 3.8vw, 3.4rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.06;
 }
 .auth-statement p { margin-top: 18px; max-width: 40ch; font-size: var(--fs-md); color: var(--ink-2); }
 .auth-aside .gates { margin: 0; pointer-events: none; }
@@ -26,7 +31,7 @@
 
 .auth-main { position: relative; display: flex; align-items: center; justify-content: center; padding: 48px 32px; }
 .auth-form { width: 100%; max-width: 340px; }
-.auth-form h1 { font-size: var(--fs-xl); font-weight: 600; letter-spacing: -0.035em; line-height: 1.15; }
+.auth-form h1 { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; }
 .auth-form > p { margin-top: 8px; color: var(--ink-2); }
 .auth-form form { margin-top: 32px; display: flex; flex-direction: column; gap: 20px; }
 .auth-alt { margin-top: 28px; font-size: var(--fs-sm); color: var(--ink-2); }
@@ -41,13 +46,14 @@
 .pane { min-width: 0; }
 .pane-main { padding-right: 44px; }
 .pane-side {
-  padding-left: 44px; border-left: 1px solid var(--line);
+  padding: 6px 12px 24px 40px;
+  border-left: 1px solid color-mix(in srgb, var(--line) 80%, var(--accent));
   position: sticky; top: calc(var(--header-h) + 20px);
   max-height: calc(100vh - var(--header-h) - 40px);
   overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
 }
 .pane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
-.pane-title { font-size: var(--fs-md); font-weight: 600; letter-spacing: -0.02em; }
+.pane-title { font-family: var(--font-display); font-size: var(--fs-md); font-weight: 700; letter-spacing: -0.025em; }
 .pane-aux { font-size: var(--fs-xs); color: var(--ink-3); }
 .pane-intro { margin: -6px 0 14px; max-width: 54ch; font-size: var(--fs-sm); color: var(--ink-2); }
 .section-gap { margin-top: 48px; }

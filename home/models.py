@@ -40,6 +40,7 @@ class StageGate(models.Model):
     is_unlocked = models.BooleanField(default=False)
     is_passed = models.BooleanField(default=False)
     unlocked_at = models.DateTimeField(null=True, blank=True)
+    target_date = models.DateField(null=True, blank=True)
 
     class Meta:
         ordering = ['order']
@@ -79,6 +80,37 @@ class StageGate(models.Model):
         return sum(self.tasks.values_list('effort_points', flat=True))
 
 
+class Sprint(models.Model):
+    project = models.ForeignKey(Project, related_name='sprints', on_delete=models.CASCADE)
+    name = models.CharField(max_length=150)
+    goal = models.CharField(max_length=255, blank=True)
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-is_active', 'start_date', 'name']
+
+    def __str__(self):
+        return f"{self.project.name} - {self.name}"
+
+    @property
+    def total_points(self):
+        return sum(self.tasks.values_list('effort_points', flat=True))
+
+    @property
+    def completed_points(self):
+        return sum(self.tasks.filter(status='COMPLETED').values_list('effort_points', flat=True))
+
+    @property
+    def progress_percent(self):
+        total = self.total_points
+        if total == 0:
+            return 0
+        return int(round((self.completed_points / total) * 100))
+
+
 class DelegationTask(models.Model):
     PRIORITY_CHOICES = [
         ('LOW', 'Low'),
@@ -96,6 +128,7 @@ class DelegationTask(models.Model):
 
     project = models.ForeignKey(Project, related_name='tasks', null=True, blank=True, on_delete=models.CASCADE)
     gate = models.ForeignKey(StageGate, related_name='tasks', null=True, blank=True, on_delete=models.CASCADE)
+    sprint = models.ForeignKey(Sprint, related_name='tasks', null=True, blank=True, on_delete=models.SET_NULL)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     created_by = models.ForeignKey(User, related_name='dispatched_tasks', on_delete=models.CASCADE, null=True, blank=True)
@@ -108,7 +141,9 @@ class DelegationTask(models.Model):
     dissolved_count = models.PositiveIntegerField(default=0)
     is_blocked = models.BooleanField(default=False)
     blocker_note = models.CharField(max_length=255, blank=True)
+    start_date = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
+    target_release_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     claimed_at = models.DateTimeField(null=True, blank=True)
 

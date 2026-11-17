@@ -1,0 +1,664 @@
+{% load home_extras %}
+
+{# --- Flexible Work Views Navigation Bar --- #}
+<div class="work-views-bar">
+  <nav class="view-switcher" aria-label="Flexible Work Views" role="tablist">
+    <a href="?project={{ project.pk }}&amp;view=gates" role="tab" aria-selected="{% if current_view == 'gates' %}true{% else %}false{% endif %}" class="view-tab{% if current_view == 'gates' %} is-active{% endif %}">
+      <svg class="ico" aria-hidden="true"><use href="#i-gate"/></svg>
+      <span>Stage-Gates</span>
+    </a>
+    <a href="?project={{ project.pk }}&amp;view=kanban" role="tab" aria-selected="{% if current_view == 'kanban' %}true{% else %}false{% endif %}" class="view-tab{% if current_view == 'kanban' %} is-active{% endif %}">
+      <svg class="ico" aria-hidden="true"><use href="#i-board"/></svg>
+      <span>Kanban Board</span>
+      <span class="view-badge mono">{{ work_views.all_tasks|length }}</span>
+    </a>
+    <a href="?project={{ project.pk }}&amp;view=sprints" role="tab" aria-selected="{% if current_view == 'sprints' %}true{% else %}false{% endif %}" class="view-tab{% if current_view == 'sprints' %} is-active{% endif %}">
+      <svg class="ico" aria-hidden="true"><use href="#i-sprint"/></svg>
+      <span>Backlogs &amp; Sprints</span>
+      {% if work_views.active_sprint %}
+      <span class="view-badge is-live mono">{{ work_views.active_sprint_total_pts }} pts</span>
+      {% endif %}
+    </a>
+    <a href="?project={{ project.pk }}&amp;view=timeline" role="tab" aria-selected="{% if current_view == 'timeline' %}true{% else %}false{% endif %}" class="view-tab{% if current_view == 'timeline' %} is-active{% endif %}">
+      <svg class="ico" aria-hidden="true"><use href="#i-timeline"/></svg>
+      <span>Visual Roadmap</span>
+    </a>
+    <a href="?project={{ project.pk }}&amp;view=calendar" role="tab" aria-selected="{% if current_view == 'calendar' %}true{% else %}false{% endif %}" class="view-tab{% if current_view == 'calendar' %} is-active{% endif %}">
+      <svg class="ico" aria-hidden="true"><use href="#i-calendar"/></svg>
+      <span>Calendar</span>
+    </a>
+    <a href="?project={{ project.pk }}&amp;view=table" role="tab" aria-selected="{% if current_view == 'table' %}true{% else %}false{% endif %}" class="view-tab{% if current_view == 'table' %} is-active{% endif %}">
+      <svg class="ico" aria-hidden="true"><use href="#i-table"/></svg>
+      <span>Spreadsheet List</span>
+    </a>
+  </nav>
+</div>
+
+{# ========================================================================= #}
+{# VIEW 1: KANBAN BOARD                                                     #}
+{# ========================================================================= #}
+{% if current_view == 'kanban' %}
+<section class="work-view-container kanban-view" aria-label="Kanban Continuous Flow Board">
+  <header class="work-view-header">
+    <div>
+      <h2 class="work-view-title">Continuous Flow Board</h2>
+      <p class="work-view-sub">Visualize work across delivery phases with WIP point totals and quick progression.</p>
+    </div>
+    <div class="view-meta mono">
+      <span>{{ work_views.all_tasks|length }} total tasks</span>
+    </div>
+  </header>
+
+  <div class="kanban-grid">
+    {% for col in work_views.kanban_cols %}
+    <div class="kanban-column" data-status="{{ col.status }}">
+      <div class="kanban-col-head">
+        <div class="kanban-col-title-wrap">
+          <span class="status-pip" style="--pip-color: {{ col.color }};"></span>
+          <h3 class="kanban-col-title">{{ col.label }}</h3>
+        </div>
+        <div class="kanban-col-metrics mono">
+          <span class="tab-badge mono">{{ col.count }}</span>
+          <span class="kanban-col-pts">{{ col.points }}<small>pts</small></span>
+        </div>
+      </div>
+
+      <div class="kanban-cards">
+        {% for task in col.tasks %}
+        <article class="kanban-card" id="kcard-{{ task.pk }}">
+          <div class="kcard-top">
+            <span class="gate-pill">G{{ task.gate.order }}</span>
+            {% include 'home/partials/_prio.html' with p=task.priority label=task.get_priority_display %}
+            <span class="kcard-pts mono">{{ task.effort_points }} pts</span>
+          </div>
+
+          <button type="button" class="kcard-title{% if task.status == 'COMPLETED' %} is-done{% endif %}" data-open-drawer="tpl-task-{{ task.pk }}">
+            {{ task.title }}
+          </button>
+
+          <div class="kcard-meta">
+            {% if task.claimed_by %}
+            <span class="kcard-user" title="Claimant">
+              <svg class="ico ico-sm" aria-hidden="true"><use href="#i-user"/></svg>
+              <span>@{{ task.claimed_by.username }}</span>
+            </span>
+            {% else %}
+            <span class="kcard-user faint">
+              <svg class="ico ico-sm" aria-hidden="true"><use href="#i-user"/></svg>
+              <span>Unassigned</span>
+            </span>
+            {% endif %}
+
+            {% if task.due_date %}
+            <span class="due{% if task.due_date < today and task.status != 'COMPLETED' %} is-late{% endif %} mono">
+              {{ task.due_date|date:"M j" }}
+            </span>
+            {% endif %}
+          </div>
+
+          <div class="kcard-flags">
+            {% if task.is_blocked %}
+            <span class="flag flag-danger">Blocked: {{ task.blocker_note|truncatechars:18 }}</span>
+            {% endif %}
+            {% if task.is_multiclaimable %}
+            <span class="flag">Multi-claim</span>
+            {% endif %}
+            {% if task.links.count %}
+            <span class="kcard-links mono" title="{{ task.links.count }} linked resource{{ task.links.count|pluralize }}">
+              <svg class="ico ico-sm" aria-hidden="true"><use href="#i-link"/></svg>
+              <span>{{ task.links.count }}</span>
+            </span>
+            {% endif %}
+          </div>
+
+          <div class="kcard-actions">
+            {% if task.status == 'OPEN' %}
+              {% if not task.gate.is_unlocked %}
+              <span class="kcard-note faint">Gate locked</span>
+              {% elif user_has_active_task and not task.is_multiclaimable %}
+              <button type="button" class="btn btn-sm is-disabled" data-toast-warning="Finish your active task first.">Mine!</button>
+              {% else %}
+              <form method="POST" action="{% url 'mine_task' task.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm">Mine!</button>
+              </form>
+              {% endif %}
+            {% elif task.status == 'CLAIMED' %}
+              {% if task.claimed_by == request.user %}
+              <form method="POST" action="{% url 'task_status_action' task.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="start">
+                <button type="submit" class="btn btn-sm">Start &rarr;</button>
+              </form>
+              {% else %}
+              <form method="POST" action="{% url 'task_quick_status' task.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="IN_PROGRESS">
+                <button type="submit" class="btn btn-sm btn-ghost">&rarr; Progress</button>
+              </form>
+              {% endif %}
+            {% elif task.status == 'IN_PROGRESS' %}
+              {% if task.claimed_by == request.user %}
+              <form method="POST" action="{% url 'task_status_action' task.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="review">
+                <button type="submit" class="btn btn-sm">Submit Review</button>
+              </form>
+              {% else %}
+              <form method="POST" action="{% url 'task_quick_status' task.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="IN_REVIEW">
+                <button type="submit" class="btn btn-sm btn-ghost">&rarr; Review</button>
+              </form>
+              {% endif %}
+            {% elif task.status == 'IN_REVIEW' %}
+              <button type="button" class="btn btn-sm" data-open-drawer="tpl-task-{{ task.pk }}">Review &amp; Sign-off</button>
+            {% elif task.status == 'COMPLETED' %}
+              <span class="flag flag-accent">&check; Approved</span>
+            {% endif %}
+          </div>
+        </article>
+        {% empty %}
+        <div class="kanban-empty faint">
+          <span>No tasks</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ========================================================================= #}
+{# VIEW 2: BACKLOGS & SPRINTS (SCRUM ITERATIONS)                             #}
+{# ========================================================================= #}
+{% if current_view == 'sprints' %}
+<section class="work-view-container sprints-view" aria-label="Scrum Sprints and Backlog Management">
+  <header class="work-view-header">
+    <div>
+      <h2 class="work-view-title">Backlogs &amp; Sprints</h2>
+      <p class="work-view-sub">Organize, prioritize, and scope work into iterations for Scrum or continuous flows.</p>
+    </div>
+    <div class="head-actions">
+      <button type="button" class="btn btn-sm" data-open-drawer="tpl-new-sprint">
+        <svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>
+        <span>New Sprint</span>
+      </button>
+    </div>
+  </header>
+
+  {# --- Active Sprint Card --- #}
+  {% if work_views.active_sprint %}
+  <div class="sprint-card sprint-card-active">
+    <div class="sprint-card-head">
+      <div>
+        <div class="sprint-headline">
+          <span class="sprint-status-badge is-active">Active Sprint</span>
+          <h3 class="sprint-name">{{ work_views.active_sprint.name }}</h3>
+        </div>
+        {% if work_views.active_sprint.goal %}
+        <p class="sprint-goal"><strong>Goal:</strong> {{ work_views.active_sprint.goal }}</p>
+        {% endif %}
+        {% if work_views.active_sprint.start_date and work_views.active_sprint.end_date %}
+        <p class="sprint-dates mono">
+          {{ work_views.active_sprint.start_date|date:"M j" }} &ndash; {{ work_views.active_sprint.end_date|date:"M j, Y" }}
+        </p>
+        {% endif %}
+      </div>
+
+      <div class="sprint-burndown-box">
+        <div class="sprint-burndown-meta mono">
+          <span><strong>{{ work_views.active_sprint_completed_pts }}</strong> / {{ work_views.active_sprint_total_pts }} pts</span>
+          <span>{{ work_views.active_sprint_progress }}% completed</span>
+        </div>
+        <div class="meter sprint-meter" style="--v: {{ work_views.active_sprint_progress }}" role="img" aria-label="Sprint {{ work_views.active_sprint_progress }} percent complete">
+          <span></span>
+        </div>
+      </div>
+    </div>
+
+    {# --- Sprint Scope Task List --- #}
+    <div class="sprint-tasks-wrap">
+      <div class="sprint-section-head">
+        <h4 class="sprint-section-title">Committed Scope ({{ work_views.active_sprint_tasks|length }} tasks)</h4>
+        <span class="mono faint">{{ work_views.active_sprint_total_pts }} pts scoped</span>
+      </div>
+
+      {% if work_views.active_sprint_tasks %}
+      <ul class="rows">
+        {% for task in work_views.active_sprint_tasks %}
+        <li class="row" id="sprint-task-{{ task.pk }}">
+          <span class="row-glyph">{% include 'home/partials/_stat.html' with s=task.status label=task.get_status_display %}</span>
+          <div class="row-main">
+            <button type="button" class="row-title{% if task.status == 'COMPLETED' %} is-done{% endif %}" data-open-drawer="tpl-task-{{ task.pk }}">
+              {{ task.title }}
+            </button>
+            <p class="row-meta">
+              <span class="gate-pill">G{{ task.gate.order }}</span>
+              <span>{{ task.get_status_display }}</span>
+              {% if task.claimed_by %}<span>Mined by @{{ task.claimed_by.username }}</span>{% else %}<span>In open pool</span>{% endif %}
+              {% if task.is_blocked %}<span class="flag flag-danger">Blocked</span>{% endif %}
+              {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
+            </p>
+          </div>
+          <span class="row-figs mono">
+            {% include 'home/partials/_prio.html' with p=task.priority label=task.get_priority_display %}
+            <span>{{ task.effort_points }} pts</span>
+            {% if task.due_date %}<span class="due{% if task.due_date < today and task.status != 'COMPLETED' %} is-late{% endif %}">{{ task.due_date|date:"M j" }}</span>{% endif %}
+          </span>
+          <div class="row-action">
+            <form method="POST" action="{% url 'task_set_sprint' task.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="sprint_id" value="none">
+              <button type="submit" class="btn btn-sm btn-ghost" title="Move to Product Backlog">To Backlog &darr;</button>
+            </form>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty empty-sm">
+        <p>No tasks currently scoped for this sprint. Pull tasks from the backlog below!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="empty">
+    <h3>No Active Sprint</h3>
+    <p>Create and activate an iteration to start planning sprint goals.</p>
+    <p class="empty-action"><button type="button" class="btn" data-open-drawer="tpl-new-sprint">New Sprint</button></p>
+  </div>
+  {% endif %}
+
+  {# --- Upcoming Sprints Preview --- #}
+  {% if work_views.upcoming_sprints %}
+  <div class="section-gap">
+    <div class="pane-head">
+      <h3 class="pane-title">Upcoming Sprints</h3>
+      <span class="pane-aux mono">{{ work_views.upcoming_sprints|length }} planned</span>
+    </div>
+    <div class="upcoming-sprints-grid">
+      {% for s in work_views.upcoming_sprints %}
+      <div class="upcoming-sprint-chip">
+        <div class="upcoming-sprint-info">
+          <h4 class="upcoming-sprint-name">{{ s.name }}</h4>
+          {% if s.goal %}<p class="upcoming-sprint-goal">{{ s.goal }}</p>{% endif %}
+          {% if s.start_date and s.end_date %}
+          <p class="mono faint text-xs">{{ s.start_date|date:"M j" }} &ndash; {{ s.end_date|date:"M j, Y" }}</p>
+          {% endif %}
+        </div>
+        <div class="upcoming-sprint-meta mono">
+          <span>{{ s.tasks.count }} task{{ s.tasks.count|pluralize }}</span>
+          <span>{{ s.total_points }} pts</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# --- Product Backlog Section --- #}
+  <div class="backlog-section section-gap">
+    <div class="pane-head">
+      <div>
+        <h3 class="pane-title">Product Backlog Pool</h3>
+        <p class="pane-intro">Unscheduled work ready to be scoped into active or upcoming sprints.</p>
+      </div>
+      <div class="pane-aux mono">
+        <span>{{ work_views.backlog_tasks|length }} items</span>
+        <span>&bull;</span>
+        <span>{{ work_views.backlog_total_pts }} pts</span>
+      </div>
+    </div>
+
+    {% if work_views.backlog_tasks %}
+    <ul class="rows">
+      {% for task in work_views.backlog_tasks %}
+      <li class="row" id="backlog-task-{{ task.pk }}">
+        <span class="row-glyph">{% include 'home/partials/_prio.html' with p=task.priority label=task.get_priority_display %}</span>
+        <div class="row-main">
+          <button type="button" class="row-title{% if task.status == 'COMPLETED' %} is-done{% endif %}" data-open-drawer="tpl-task-{{ task.pk }}">
+            {{ task.title }}
+          </button>
+          <p class="row-meta">
+            <span class="gate-pill">G{{ task.gate.order }}</span>
+            <span>{{ task.get_status_display }}</span>
+            {% if task.claimed_by %}<span>Mined by @{{ task.claimed_by.username }}</span>{% endif %}
+            {% if task.is_blocked %}<span class="flag flag-danger">Blocked</span>{% endif %}
+            {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
+          </p>
+        </div>
+        <span class="row-figs mono">
+          <span>{{ task.effort_points }} pts</span>
+          {% if task.due_date %}<span class="due{% if task.due_date < today and task.status != 'COMPLETED' %} is-late{% endif %}">{{ task.due_date|date:"M j" }}</span>{% endif %}
+        </span>
+        <div class="row-action">
+          {% if work_views.active_sprint %}
+          <form method="POST" action="{% url 'task_set_sprint' task.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="sprint_id" value="{{ work_views.active_sprint.pk }}">
+            <button type="submit" class="btn btn-sm btn-ghost">+ Active Sprint</button>
+          </form>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty empty-sm">
+      <p>All project tasks are currently assigned to active or upcoming sprints.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+{# ========================================================================= #}
+{# VIEW 3: VISUAL TIMELINES & ROADMAPS (GANTT SCHEDULE)                      #}
+{# ========================================================================= #}
+{% if current_view == 'timeline' %}
+<section class="work-view-container timeline-view" aria-label="Visual Timelines and Milestone Roadmaps">
+  <header class="work-view-header">
+    <div>
+      <h2 class="work-view-title">Project Roadmap &amp; Schedule</h2>
+      <p class="work-view-sub">Interactive Gantt roadmap mapping target release dates, Stage-Gate milestones, and sprint durations.</p>
+    </div>
+    <div class="timeline-legend mono text-xs">
+      <span class="legend-item"><span class="legend-dot" style="background: var(--neon-cyan)"></span> Today</span>
+      <span class="legend-item"><span class="legend-dot" style="background: var(--solar-gold)"></span> Milestone</span>
+      <span class="legend-item"><span class="legend-dot" style="background: var(--accent-subtle)"></span> Sprint</span>
+    </div>
+  </header>
+
+  <div class="timeline-scroll-wrap">
+    <div class="timeline-board">
+
+      {# --- Timeline Header with Dates --- #}
+      <div class="timeline-head-row">
+        <div class="timeline-label-col">
+          <span class="mono text-xs">Delivery Track</span>
+        </div>
+        <div class="timeline-track-col">
+          <div class="timeline-dates-grid">
+            {% for d in work_views.timeline_days %}
+            <div class="timeline-day-col{% if d.is_today %} is-today{% endif %}{% if d.is_weekend %} is-weekend{% endif %}">
+              <span class="day-name mono">{{ d.day_name|slice:":1" }}</span>
+              <span class="day-num mono">{{ d.day_num }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {# Vertical Glowing Today Line #}
+          <div class="timeline-today-marker" style="left: {{ work_views.today_percent }}%;" title="Today">
+            <span class="today-tag mono">TODAY</span>
+          </div>
+        </div>
+      </div>
+
+      {# --- Stage-Gate Milestones Lane --- #}
+      <div class="timeline-lane-row timeline-lane-milestones">
+        <div class="timeline-label-col">
+          <span class="lane-title">Stage-Gate Milestones</span>
+        </div>
+        <div class="timeline-track-col">
+          <div class="milestones-track">
+            {% for m in work_views.timeline_gates %}
+            <div class="milestone-node{% if m.gate.is_passed %} is-passed{% elif m.gate.is_unlocked %} is-unlocked{% else %} is-locked{% endif %}"
+                 style="left: {{ m.percent }}%;"
+                 title="Gate {{ m.gate.order }}: {{ m.gate.name }} (Target: {{ m.date|date:'M j' }})">
+              <div class="milestone-diamond">
+                <svg class="ico ico-sm" aria-hidden="true">
+                  {% if m.gate.is_passed %}<use href="#i-check"/>{% elif m.gate.is_unlocked %}<use href="#i-mark"/>{% else %}<use href="#i-lock"/>{% endif %}
+                </svg>
+              </div>
+              <span class="milestone-label mono">G{{ m.gate.order }} &bull; {{ m.date|date:"M j" }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {# --- Sprint Iterations Lane --- #}
+      {% if work_views.timeline_sprints %}
+      <div class="timeline-lane-row timeline-lane-sprints">
+        <div class="timeline-label-col">
+          <span class="lane-title">Sprint Cycles</span>
+        </div>
+        <div class="timeline-track-col">
+          <div class="sprints-track">
+            {% for s in work_views.timeline_sprints %}
+            <div class="timeline-sprint-bar{% if s.sprint.is_active %} is-active{% endif %}"
+                 style="left: {{ s.left }}%; width: {{ s.width }}%;"
+                 title="{{ s.sprint.name }}">
+              <span class="sprint-bar-title mono">{{ s.sprint.name }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# --- Tasks Gantt Schedule Lanes --- #}
+      <div class="timeline-tasks-lane-wrap">
+        {% for item in work_views.timeline_tasks %}
+        <div class="timeline-lane-row timeline-task-row">
+          <div class="timeline-label-col">
+            <button type="button" class="timeline-task-btn" data-open-drawer="tpl-task-{{ item.task.pk }}">
+              <span class="gate-pill">G{{ item.task.gate.order }}</span>
+              <span class="timeline-task-title" title="{{ item.task.title }}">{{ item.task.title }}</span>
+              <span class="mono text-xs faint">{{ item.task.effort_points }}p</span>
+            </button>
+          </div>
+          <div class="timeline-track-col">
+            <div class="timeline-gantt-bar-wrap">
+              <div class="gantt-bar status-{{ item.task.status|lower }}{% if item.task.is_blocked %} is-blocked{% endif %}"
+                   style="left: {{ item.left }}%; width: {{ item.width }}%;"
+                   data-open-drawer="tpl-task-{{ item.task.pk }}"
+                   role="button"
+                   tabindex="0"
+                   title="{{ item.task.title }} | {{ item.start_date|date:'M j' }} &ndash; {{ item.end_date|date:'M j' }} | {{ item.task.get_status_display }}">
+                <div class="gantt-bar-fill" style="width: {{ item.progress }}%;"></div>
+                <span class="gantt-bar-text mono">{{ item.task.title }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ========================================================================= #}
+{# VIEW 4: CALENDAR VIEW                                                    #}
+{# ========================================================================= #}
+{% if current_view == 'calendar' %}
+<section class="work-view-container calendar-view" aria-label="Monthly Calendar View">
+  <header class="work-view-header">
+    <div>
+      <h2 class="work-view-title">{{ work_views.current_month_name }}</h2>
+      <p class="work-view-sub">Track release targets, due dates, and sprint milestones across the monthly cycle.</p>
+    </div>
+    <div class="view-meta mono">
+      <span>Today: {{ today|date:"F j, Y" }}</span>
+    </div>
+  </header>
+
+  <div class="calendar-grid">
+    <div class="calendar-weekdays-row">
+      <span class="calendar-weekday is-weekend">Sun</span>
+      <span class="calendar-weekday">Mon</span>
+      <span class="calendar-weekday">Tue</span>
+      <span class="calendar-weekday">Wed</span>
+      <span class="calendar-weekday">Thu</span>
+      <span class="calendar-weekday">Fri</span>
+      <span class="calendar-weekday is-weekend">Sat</span>
+    </div>
+
+    {% for week in work_views.calendar_weeks %}
+    <div class="calendar-week-row">
+      {% for day in week %}
+      <div class="calendar-day-cell{% if day.is_today %} is-today{% endif %}{% if not day.is_current_month %} is-other-month{% endif %}">
+        <div class="calendar-day-head">
+          <span class="calendar-day-num mono">{{ day.day }}</span>
+          {% if day.is_today %}
+          <span class="calendar-today-badge mono">TODAY</span>
+          {% endif %}
+        </div>
+
+        <div class="calendar-day-tasks">
+          {% for t in day.tasks %}
+          <button type="button" class="calendar-task-chip status-{{ t.status|lower }}" data-open-drawer="tpl-task-{{ t.pk }}" title="{{ t.title }} ({{ t.effort_points }} pts)">
+            <span class="chip-status-dot"></span>
+            <span class="chip-title">{{ t.title }}</span>
+            <span class="chip-pts mono">{{ t.effort_points }}p</span>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ========================================================================= #}
+{# VIEW 5: SPREADSHEET LIST (AIRTABLE / LINEAR STYLE TABLE)                  #}
+{# ========================================================================= #}
+{% if current_view == 'table' %}
+<section class="work-view-container table-view" aria-label="Spreadsheet-like High-Density Task Table">
+  <header class="work-view-header">
+    <div>
+      <h2 class="work-view-title">Spreadsheet List</h2>
+      <p class="work-view-sub">High-density spreadsheet layout with comprehensive delivery attributes and rapid drawer access.</p>
+    </div>
+    <div class="view-meta mono">
+      <span>{{ work_views.all_tasks|length }} records</span>
+    </div>
+  </header>
+
+  <div class="spreadsheet-table-wrap">
+    <table class="spreadsheet-table">
+      <thead>
+        <tr>
+          <th class="th-key mono">Key</th>
+          <th class="th-title">Task Title</th>
+          <th class="th-gate">Gate</th>
+          <th class="th-prio">Priority</th>
+          <th class="th-status">Status</th>
+          <th class="th-points mono">Effort</th>
+          <th class="th-sprint">Sprint</th>
+          <th class="th-assignee">Assignee</th>
+          <th class="th-due mono">Due Date</th>
+          <th class="th-links">Links</th>
+          <th class="th-action">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in work_views.all_tasks %}
+        <tr class="spreadsheet-row{% if task.status == 'COMPLETED' %} is-completed{% endif %}">
+          <td class="td-key mono">#{{ task.pk }}</td>
+          <td class="td-title">
+            <button type="button" class="table-title-btn" data-open-drawer="tpl-task-{{ task.pk }}">
+              {{ task.title }}
+            </button>
+            {% if task.is_blocked %}
+            <span class="flag flag-danger text-xs ml-xs">Blocked</span>
+            {% endif %}
+          </td>
+          <td class="td-gate">
+            <span class="gate-pill">G{{ task.gate.order }}</span>
+          </td>
+          <td class="td-prio">
+            {% include 'home/partials/_prio.html' with p=task.priority label=task.get_priority_display %}
+          </td>
+          <td class="td-status">
+            <span class="status-chip status-{{ task.status|lower }} mono">
+              {{ task.get_status_display }}
+            </span>
+          </td>
+          <td class="td-points mono">
+            <span>{{ task.effort_points }} pts</span>
+          </td>
+          <td class="td-sprint mono">
+            {% if task.sprint %}
+            <span class="sprint-pill">{{ task.sprint.name }}</span>
+            {% else %}
+            <span class="faint">Backlog</span>
+            {% endif %}
+          </td>
+          <td class="td-assignee">
+            {% if task.claimed_by %}
+            <span class="assignee-pill">
+              <svg class="ico ico-sm" aria-hidden="true"><use href="#i-user"/></svg>
+              <span>@{{ task.claimed_by.username }}</span>
+            </span>
+            {% else %}
+            <span class="faint">Unassigned</span>
+            {% endif %}
+          </td>
+          <td class="td-due mono">
+            {% if task.due_date %}
+            <span class="due{% if task.due_date < today and task.status != 'COMPLETED' %} is-late{% endif %}">
+              {{ task.due_date|date:"M j, Y" }}
+            </span>
+            {% else %}
+            <span class="faint">&mdash;</span>
+            {% endif %}
+          </td>
+          <td class="td-links mono">
+            {% if task.links.count %}
+            <span class="kcard-links">
+              <svg class="ico ico-sm" aria-hidden="true"><use href="#i-link"/></svg>
+              <span>{{ task.links.count }}</span>
+            </span>
+            {% else %}
+            <span class="faint">0</span>
+            {% endif %}
+          </td>
+          <td class="td-action">
+            <button type="button" class="btn btn-sm btn-ghost" data-open-drawer="tpl-task-{{ task.pk }}">Open &rarr;</button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="11" class="text-center faint py-lg">No tasks found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{# Drawer for New Sprint Creation #}
+<template id="tpl-new-sprint" data-title="New Sprint Iteration" data-kicker="{{ project.name }}">
+  <form method="POST" action="{% url 'create_sprint' project.pk %}" class="sheet-stack">
+    {% csrf_token %}
+    <div class="field">
+      <label class="label" for="sprint-name">Sprint Name</label>
+      <input class="input" type="text" name="name" id="sprint-name" placeholder="e.g. Sprint 3: Production Hardening" required>
+    </div>
+    <div class="field">
+      <label class="label" for="sprint-goal">Sprint Goal</label>
+      <input class="input" type="text" name="goal" id="sprint-goal" placeholder="What is the objective of this sprint?">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="label" for="sprint-start">Start Date</label>
+        <input class="input" type="date" name="start_date" id="sprint-start">
+      </div>
+      <div class="field">
+        <label class="label" for="sprint-end">End Date</label>
+        <input class="input" type="date" name="end_date" id="sprint-end">
+      </div>
+    </div>
+    <div class="sheet-actions mt-md">
+      <button type="submit" class="btn">Create sprint</button>
+    </div>
+  </form>
+</template>

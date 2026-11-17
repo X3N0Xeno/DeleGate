@@ -2,7 +2,6 @@
 {% load home_extras %}
 {% block title %}Open work | DeleGate{% endblock %}
 
-{% block crumbs %}{% if project %}<strong>{{ project.name }}</strong><span class="crumb-sep" aria-hidden="true">/</span>{% endif %}<span>Open work</span>{% endblock %}
 
 {% block content %}
 <div class="page">
@@ -34,6 +33,9 @@
 
   {% include 'home/partials/_gates.html' with mode='claim' %}
 
+  {% include 'home/partials/_work_views.html' %}
+
+  {% if current_view == 'gates' %}
   {% if user_has_active_task %}
   <p class="note note-block">
     <strong>Finish what you've started first.</strong>
@@ -127,7 +129,10 @@
 
       <nav class="tabs" aria-label="Filter your queue" data-instant-filter="claimant-queue">
         {% for t in my_tabs_list %}
-        <a class="tab" href="?project={{ project.pk }}&amp;my_tab={{ t.key }}" data-filter-tab="{{ t.key }}"{% if t.active %} aria-current="page"{% endif %}>{{ t.label }}<span class="mono">{{ t.count }}</span></a>
+        <a class="tab" href="?project={{ project.pk }}&amp;my_tab={{ t.key }}" data-filter-tab="{{ t.key }}"{% if t.active %} aria-current="page"{% endif %}>
+          <span>{{ t.label }}</span>
+          <span class="tab-badge mono">{{ t.count }}</span>
+        </a>
         {% endfor %}
       </nav>
 
@@ -182,57 +187,11 @@
       {% endif %}
     </aside>
   </div>
+  {% endif %}
 
   {# ================== Drawer contents: one <template> per task ================== #}
 
-  {% for task in open_pool_tasks %}
-  <template id="tpl-task-{{ task.pk }}" data-title="{{ task.title }}" data-kicker="G{{ task.gate.order }}  {{ task.gate.name|gate_title }}">
-    {% include 'home/partials/_task_facts.html' %}
-    {% include 'home/partials/_task_links.html' %}
-
-    {% if task.description %}
-    <section class="sheet-section">
-      <h3 class="sheet-label">What needs doing</h3>
-      <p class="sheet-text">{{ task.description }}</p>
-    </section>
-    {% endif %}
-
-    {% if task.dissolved_count %}
-    <section class="sheet-section">
-      <p class="note note-danger">
-        <strong>Returned to the pool {{ task.dissolved_count }} time{{ task.dissolved_count|pluralize }}.</strong>
-        The earlier work is kept, so you can pick it up where it stopped.
-      </p>
-    </section>
-    {% endif %}
-
-    {% if task.progress_notes %}
-    <section class="sheet-section">
-      <h3 class="sheet-label">Notes from earlier work</h3>
-      <p class="sheet-text">{{ task.progress_notes }}</p>
-    </section>
-    {% endif %}
-
-    <section class="sheet-section">
-      <p class="sheet-text faint">Dispatched by @{{ task.created_by.username|default:"admin" }}</p>
-      <div class="sheet-actions mt-sm">
-        {% if user_has_active_task and not task.is_multiclaimable %}
-        <button type="button" class="btn is-disabled" data-toast-warning="Finish or submit your active task first. Only multi-claim tasks can be stacked." aria-disabled="true">
-          <svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg> Mine!
-        </button>
-        <span class="hint">Finish or submit your active task first. Only multi-claim tasks can be stacked.</span>
-        {% else %}
-        <form method="POST" action="{% url 'mine_task' task.pk %}">
-          {% csrf_token %}
-          <button type="submit" class="btn">Mine!</button>
-        </form>
-        {% endif %}
-      </div>
-    </section>
-  </template>
-  {% endfor %}
-
-  {% for task in all_my_tasks %}
+  {% for task in all_project_tasks %}
   <template id="tpl-task-{{ task.pk }}" data-title="{{ task.title }}" data-kicker="G{{ task.gate.order }}  {{ task.gate.name|gate_title }}">
     {% include 'home/partials/_task_facts.html' %}
     {% include 'home/partials/_task_links.html' %}
@@ -250,79 +209,123 @@
     </section>
     {% endif %}
 
+    {% if task.dissolved_count %}
     <section class="sheet-section">
-      <h3 class="sheet-label">Progress notes <small>kept across reviews</small></h3>
-      {% if task.status != 'COMPLETED' %}
-      <form method="POST" action="{% url 'task_update_notes' task.pk %}" data-reopen class="sheet-stack">
-        {% csrf_token %}
-        <div class="field">
-          <label class="sr-only" for="notes-{{ task.pk }}">Progress notes</label>
-          <textarea class="textarea" name="progress_notes" id="notes-{{ task.pk }}" rows="3" placeholder="Branch links, test results, what's left…">{{ task.progress_notes }}</textarea>
-        </div>
-        <div><button type="submit" class="btn btn-sm btn-ghost">Save notes</button></div>
-      </form>
-      {% else %}
-      <p class="sheet-text">{{ task.progress_notes|default:"No notes were recorded." }}</p>
-      {% endif %}
-    </section>
-
-    <section class="sheet-section">
-      <h3 class="sheet-label">Next step</h3>
-      <div class="sheet-actions">
-        {% if task.status == 'CLAIMED' %}
-        <form method="POST" action="{% url 'task_status_action' task.pk %}">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="start">
-          <button type="submit" class="btn">Start work</button>
-        </form>
-        {% elif task.status == 'IN_PROGRESS' %}
-        <form method="POST" action="{% url 'task_status_action' task.pk %}">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="review">
-          <button type="submit" class="btn">Submit for review</button>
-        </form>
-        {% elif task.status == 'IN_REVIEW' %}
-        <span class="flag">With your manager. They will approve it or send it back with feedback.</span>
-        {% elif task.status == 'COMPLETED' %}
-        <span class="flag flag-accent">Approved by your manager</span>
-        {% endif %}
-
-        {% if task.status != 'COMPLETED' and task.status != 'IN_REVIEW' %}
-        <form method="POST" action="{% url 'task_status_action' task.pk %}"
-              data-confirm="It goes back to the open pool for other claimants to mine. Your progress notes stay with the task."
-              data-confirm-title="Release this task?"
-              data-confirm-label="Release task">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="release">
-          <button type="submit" class="btn btn-quiet">Release to pool</button>
-        </form>
-        {% endif %}
-      </div>
-    </section>
-
-    {% if task.status != 'COMPLETED' %}
-    <section class="sheet-section">
-      <h3 class="sheet-label">Blocker</h3>
-      {% if task.is_blocked %}
-      <p class="sheet-text mb-sm">Flagged: {{ task.blocker_note }}</p>
-      <form method="POST" action="{% url 'task_toggle_blocker' task.pk %}" data-reopen>
-        {% csrf_token %}
-        <button type="submit" class="btn btn-sm btn-ghost">Clear blocker</button>
-      </form>
-      {% else %}
-      <form method="POST" action="{% url 'task_toggle_blocker' task.pk %}" data-reopen class="sheet-stack">
-        {% csrf_token %}
-        <div class="field">
-          <label class="sr-only" for="blocker-{{ task.pk }}">What is blocking you</label>
-          <input class="input" type="text" name="blocker_note" id="blocker-{{ task.pk }}" placeholder="What's in the way?">
-        </div>
-        <div><button type="submit" class="btn btn-sm btn-ghost">Flag blocker</button></div>
-      </form>
-      {% endif %}
+      <p class="note note-danger">
+        <strong>Returned to the pool {{ task.dissolved_count }} time{{ task.dissolved_count|pluralize }}.</strong>
+        The earlier work is kept, so you can pick it up where it stopped.
+      </p>
     </section>
     {% endif %}
 
-    {% include 'home/partials/_thread.html' with placeholder='Write an update for your manager…' %}
+    {% if task.claimed_by == request.user %}
+      {# Active Claimant Controls #}
+      <section class="sheet-section">
+        <h3 class="sheet-label">Progress notes <small>kept across reviews</small></h3>
+        {% if task.status != 'COMPLETED' %}
+        <form method="POST" action="{% url 'task_update_notes' task.pk %}" data-reopen class="sheet-stack">
+          {% csrf_token %}
+          <div class="field">
+            <label class="sr-only" for="notes-{{ task.pk }}">Progress notes</label>
+            <textarea class="textarea" name="progress_notes" id="notes-{{ task.pk }}" rows="3" placeholder="Branch links, test results, what's left…">{{ task.progress_notes }}</textarea>
+          </div>
+          <div><button type="submit" class="btn btn-sm btn-ghost">Save notes</button></div>
+        </form>
+        {% else %}
+        <p class="sheet-text">{{ task.progress_notes|default:"No notes were recorded." }}</p>
+        {% endif %}
+      </section>
+
+      <section class="sheet-section">
+        <h3 class="sheet-label">Next step</h3>
+        <div class="sheet-actions">
+          {% if task.status == 'CLAIMED' %}
+          <form method="POST" action="{% url 'task_status_action' task.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="start">
+            <button type="submit" class="btn">Start work</button>
+          </form>
+          {% elif task.status == 'IN_PROGRESS' %}
+          <form method="POST" action="{% url 'task_status_action' task.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="review">
+            <button type="submit" class="btn">Submit for review</button>
+          </form>
+          {% elif task.status == 'IN_REVIEW' %}
+          <span class="flag">With your manager. They will approve it or send it back with feedback.</span>
+          {% elif task.status == 'COMPLETED' %}
+          <span class="flag flag-accent">Approved by your manager</span>
+          {% endif %}
+
+          {% if task.status != 'COMPLETED' and task.status != 'IN_REVIEW' %}
+          <form method="POST" action="{% url 'task_status_action' task.pk %}"
+                data-confirm="It goes back to the open pool for other claimants to mine. Your progress notes stay with the task."
+                data-confirm-title="Release this task?"
+                data-confirm-label="Release task">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="release">
+            <button type="submit" class="btn btn-quiet">Release to pool</button>
+          </form>
+          {% endif %}
+        </div>
+      </section>
+
+      {% if task.status != 'COMPLETED' %}
+      <section class="sheet-section">
+        <h3 class="sheet-label">Blocker</h3>
+        {% if task.is_blocked %}
+        <p class="sheet-text mb-sm">Flagged: {{ task.blocker_note }}</p>
+        <form method="POST" action="{% url 'task_toggle_blocker' task.pk %}" data-reopen>
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-ghost">Clear blocker</button>
+        </form>
+        {% else %}
+        <form method="POST" action="{% url 'task_toggle_blocker' task.pk %}" data-reopen class="sheet-stack">
+          {% csrf_token %}
+          <div class="field">
+            <label class="sr-only" for="blocker-{{ task.pk }}">What is blocking you</label>
+            <input class="input" type="text" name="blocker_note" id="blocker-{{ task.pk }}" placeholder="What's in the way?">
+          </div>
+          <div><button type="submit" class="btn btn-sm btn-ghost">Flag blocker</button></div>
+        </form>
+        {% endif %}
+      </section>
+      {% endif %}
+
+    {% else %}
+      {# Unclaimed / Other claimant #}
+      {% if task.progress_notes %}
+      <section class="sheet-section">
+        <h3 class="sheet-label">Notes from earlier work</h3>
+        <p class="sheet-text">{{ task.progress_notes }}</p>
+      </section>
+      {% endif %}
+
+      <section class="sheet-section">
+        {% if task.claimed_by %}
+        <p class="sheet-text faint">Currently claimed by @{{ task.claimed_by.username }}</p>
+        {% elif not task.gate.is_unlocked %}
+        <p class="sheet-text faint">Waiting behind locked Gate {{ task.gate.order }}.</p>
+        {% else %}
+        <p class="sheet-text faint">Dispatched by @{{ task.created_by.username|default:"admin" }}</p>
+        <div class="sheet-actions mt-sm">
+          {% if user_has_active_task and not task.is_multiclaimable %}
+          <button type="button" class="btn is-disabled" data-toast-warning="Finish or submit your active task first. Only multi-claim tasks can be stacked." aria-disabled="true">
+            <svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg> Mine!
+          </button>
+          <span class="hint">Finish or submit your active task first. Only multi-claim tasks can be stacked.</span>
+          {% else %}
+          <form method="POST" action="{% url 'mine_task' task.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn">Mine!</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    {% include 'home/partials/_thread.html' with placeholder='Write an update…' %}
   </template>
   {% endfor %}
 

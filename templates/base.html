@@ -10,7 +10,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23234E3D' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 20.5V9a7.5 7.5 0 0 1 15 0v11.5'/%3E%3Cpath d='M9 20.5V10a3 3 0 0 1 6 0v10.5'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 
   <script src="{% static 'js/circadian.js' %}"></script>
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
@@ -29,56 +29,37 @@
 
   {% block layout %}
   <div class="app">
-    <aside class="sidebar" id="sidebar" aria-label="Primary">
-      <a class="brand" href="{% url 'home' %}">
-        <svg class="ico" aria-hidden="true"><use href="#i-mark"/></svg>
-        DeleGate
-      </a>
-
-      {% with ws=ui_workspace %}
-      <nav class="nav-group" aria-label="Workspace">
-        <span class="nav-label">Workspace</span>
-        <a class="nav-link" href="{{ ws.url }}"{% if request.resolver_match.url_name == ws.url_name %} aria-current="page"{% endif %}>
-          <svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>
-          <span class="nav-link-text">{{ ws.label }}</span>
-        </a>
-      </nav>
-      {% endwith %}
-
-      {% if projects %}
-      <nav class="nav-group" aria-label="Projects">
-        <span class="nav-label">Projects</span>
-        {% for p in projects %}
-        <a class="nav-link" href="?project={{ p.pk }}"{% if project and p.pk == project.pk %} aria-current="page"{% endif %}>
-          <span class="nav-link-text">{{ p.name }}</span>
-        </a>
-        {% endfor %}
-        {% block sidebar_projects_extra %}{% endblock %}
-      </nav>
-      {% endif %}
-
-      <div class="nav-spacer"></div>
-
-      <nav class="nav-group" aria-label="Account">
-        <a class="nav-link" href="{% url 'user_profile:profile' %}"{% if request.resolver_match.url_name == 'profile' %} aria-current="page"{% endif %}>
-          <svg class="ico" aria-hidden="true"><use href="#i-user"/></svg>
-          <span class="nav-link-text">Profile</span>
-        </a>
-        <a class="nav-link" href="{% url 'user_settings:settings' %}"{% if request.resolver_match.url_name == 'settings' %} aria-current="page"{% endif %}>
-          <svg class="ico" aria-hidden="true"><use href="#i-sliders"/></svg>
-          <span class="nav-link-text">Settings</span>
-        </a>
-      </nav>
-    </aside>
-    <div class="nav-scrim"></div>
-
     <div class="main">
       <header class="topbar">
         <div class="topbar-start">
-          <button type="button" class="icon-btn nav-toggle" data-nav-toggle aria-label="Open navigation" aria-controls="sidebar">
-            <svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg>
-          </button>
-          <div class="crumbs">{% block crumbs %}<strong>DeleGate</strong>{% endblock %}</div>
+          <a class="brand" href="{% url 'home' %}">
+            <svg class="ico" aria-hidden="true"><use href="#i-mark"/></svg>
+            DeleGate
+          </a>
+
+          {% if projects %}
+          <details class="menu project-menu">
+            <summary class="project-summary" aria-label="Select project">
+              <span class="project-current-name">{{ project.name|default:"Select project" }}</span>
+              <svg class="ico" aria-hidden="true"><use href="#i-chevron"/></svg>
+            </summary>
+            <div class="menu-panel project-menu-panel">
+              <div class="menu-who">
+                <strong>Projects</strong>
+                <span>{{ projects|length }} available</span>
+              </div>
+              <div class="project-menu-list">
+                {% for p in projects %}
+                <a class="nav-link{% if project and p.pk == project.pk %} is-active{% endif %}" href="?project={{ p.pk }}{% if current_view and current_view != 'gates' %}&amp;view={{ current_view }}{% endif %}">
+                  <span class="nav-link-text">{{ p.name }}</span>
+                  {% if project and p.pk == project.pk %}<span class="menu-check">&check;</span>{% endif %}
+                </a>
+                {% endfor %}
+              </div>
+              {% block project_dropdown_extra %}{% endblock %}
+            </div>
+          </details>
+          {% endif %}
         </div>
 
         <div class="topbar-tools">

@@ -2,9 +2,8 @@
 {% load home_extras %}
 {% block title %}Gate hub | DeleGate{% endblock %}
 
-{% block crumbs %}{% if project %}<strong>{{ project.name }}</strong><span class="crumb-sep" aria-hidden="true">/</span>{% endif %}<span>Gate hub</span>{% endblock %}
-
-{% block sidebar_projects_extra %}
+{% block project_dropdown_extra %}
+<div class="menu-rule"></div>
 <button type="button" class="nav-link" data-open-drawer="tpl-new-project">
   <svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>
   <span class="nav-link-text">New project</span>
@@ -40,13 +39,19 @@
 
   {% include 'home/partials/_gates.html' with mode='assign' %}
 
+  {% include 'home/partials/_work_views.html' %}
+
+  {% if current_view == 'gates' %}
   <section aria-labelledby="board-title">
     <h2 class="sr-only" id="board-title">Task board</h2>
 
     <div class="board-tools">
       <nav class="tabs" aria-label="Filter tasks by status" data-instant-filter="assigner-board">
         {% for t in filter_tabs %}
-        <a class="tab" href="?project={{ project.pk }}&amp;gate={{ gate_filter }}&amp;status={{ t.key }}" data-filter-tab="{{ t.key }}"{% if t.active %} aria-current="page"{% endif %}>{{ t.label }}<span class="mono">{{ t.count }}</span></a>
+        <a class="tab" href="?project={{ project.pk }}&amp;gate={{ gate_filter }}&amp;status={{ t.key }}" data-filter-tab="{{ t.key }}"{% if t.active %} aria-current="page"{% endif %}>
+          <span>{{ t.label }}</span>
+          <span class="tab-badge mono">{{ t.count }}</span>
+        </a>
         {% endfor %}
       </nav>
 
@@ -106,6 +111,7 @@
       </div>
     </div>
   </section>
+  {% endif %}
   {% endif %}
 </div>
 
