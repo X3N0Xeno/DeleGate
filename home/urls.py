@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import api_views
 
 urlpatterns = [
     path('', views.home_view, name='home'),
@@ -20,4 +21,9 @@ urlpatterns = [
     path('project/<int:pk>/add-gate/', views.add_gate, name='add_gate'),
     path('project/<int:pk>/add-sprint/', views.create_sprint, name='create_sprint'),
     path('project/create/', views.create_project, name='create_project'),
+
+    # JSON API endpoints for Rune Rust companion client and external CLI runners
+    path('api/pool/', api_views.api_pool_tasks, name='api_pool_tasks'),
+    path('api/tasks/<int:task_id>/mine/', api_views.api_mine_task, name='api_mine_task'),
+    path('api/gates/<int:gate_id>/pass/', api_views.api_pass_gate, name='api_pass_gate'),
 ]
