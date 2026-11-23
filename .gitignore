@@ -7,8 +7,5 @@ GIT_*.txt
 *.patch
 BANZON_FINAL_PROJECT/
 *.zip
-BASELINE_COMMIT.txt
-GIT_*.txt
-*.patch
-BANZON_FINAL_PROJECT/
-*.zip
+.agents/
+skills-lock.json

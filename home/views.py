@@ -231,7 +231,7 @@ def get_work_views_context(project, current_view, request):
 
     all_tasks = list(
         DelegationTask.objects.filter(project=project)
-        .select_related('gate', 'sprint', 'claimed_by', 'created_by')
+        .select_related('gate', 'project', 'claimed_by', 'created_by', 'sprint')
         .prefetch_related('links', 'comments__author')
         .order_by('gate__order', '-priority', 'created_at')
     )
@@ -453,24 +453,24 @@ def claimant_dashboard(request):
         gate__is_unlocked=True,
         status='OPEN',
         claimed_by__isnull=True,
-    ).select_related('gate', 'created_by').prefetch_related('links').order_by('-priority', 'created_at'))
+    ).select_related('gate', 'project', 'created_by', 'claimed_by').prefetch_related('links').order_by('-priority', 'created_at'))
 
     # Locked upcoming tasks
     locked_preview_tasks = list(DelegationTask.objects.filter(
         project=project,
         gate__is_unlocked=False,
-    ).select_related('gate', 'created_by').order_by('gate__order', 'created_at'))
+    ).select_related('gate', 'project', 'created_by', 'claimed_by').order_by('gate__order', 'created_at'))
 
     # Claimant's own mined tasks (evaluated once in memory for all tabs and KPIs)
     all_my_tasks = list(DelegationTask.objects.filter(
         project=project,
         claimed_by=request.user,
-    ).select_related('gate', 'created_by').prefetch_related('comments__author', 'links').order_by('-created_at'))
+    ).select_related('gate', 'project', 'created_by', 'claimed_by').prefetch_related('comments__author', 'links').order_by('-created_at'))
 
     # All project tasks (for template drawers across all work views)
     all_project_tasks = list(DelegationTask.objects.filter(
         project=project
-    ).select_related('gate', 'created_by', 'claimed_by', 'sprint').prefetch_related('comments__author', 'links').order_by('gate__order', '-created_at'))
+    ).select_related('gate', 'project', 'created_by', 'claimed_by', 'sprint').prefetch_related('comments__author', 'links').order_by('gate__order', '-created_at'))
 
     # In-memory tab counts & KPIs (0 extra database queries)
     my_counts = {
@@ -605,7 +605,7 @@ def assigner_dashboard(request):
     gate_filter = request.GET.get('gate', 'all')
 
     # Ordered by gate first so the template can group the board under each gate.
-    all_tasks = list(DelegationTask.objects.filter(project=project).select_related('gate', 'claimed_by', 'created_by', 'sprint').prefetch_related('comments__author', 'links').order_by('gate__order', '-created_at'))
+    all_tasks = list(DelegationTask.objects.filter(project=project).select_related('gate', 'project', 'claimed_by', 'created_by', 'sprint').prefetch_related('comments__author', 'links').order_by('gate__order', '-created_at'))
 
     if gate_filter != 'all':
         tasks_for_counts = [t for t in all_tasks if str(t.gate_id) == str(gate_filter)]

@@ -60,10 +60,12 @@
           <div class="row-main">
             <button type="button" class="row-title" data-open-drawer="tpl-task-{{ task.pk }}">{{ task.title }}</button>
             <p class="row-meta">
-              <span class="gate-pill">G{{ task.gate.order }}</span>
+              <span class="gate-pill" title="Gate: G{{ task.gate.order }} {{ task.gate.name|gate_title }}">G{{ task.gate.order }} {{ task.gate.name|gate_title }}</span>
+              <span class="gate-pill" title="Project: {{ task.project.name }}">{{ task.project.name }}</span>
               {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
               {% if task.dissolved_count %}<span class="flag flag-danger">Returned to pool {{ task.dissolved_count }}x, notes kept</span>{% endif %}
               <span>from @{{ task.created_by.username|default:"admin" }}</span>
+              {% if task.claimed_by %}<span>claimed by @{{ task.claimed_by.username }}</span>{% endif %}
             </p>
           </div>
           <span class="row-figs mono">
@@ -106,9 +108,10 @@
             <div class="row-main">
               <span class="row-title">{{ task.title }}</span>
               <p class="row-meta">
-                <span class="gate-pill">G{{ task.gate.order }}</span>
-                <span>{{ task.gate.name|gate_title }}</span>
+                <span class="gate-pill" title="Gate: G{{ task.gate.order }} {{ task.gate.name|gate_title }}">G{{ task.gate.order }} {{ task.gate.name|gate_title }}</span>
+                <span class="gate-pill" title="Project: {{ task.project.name }}">{{ task.project.name }}</span>
                 {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
+                <span>from @{{ task.created_by.username|default:"admin" }}</span>
               </p>
             </div>
             <span class="row-figs mono"><span>{{ task.effort_points }} pts</span></span>
@@ -144,8 +147,11 @@
           <div class="row-main">
             <button type="button" class="row-title{% if task.status == 'COMPLETED' %} is-done{% endif %}" data-open-drawer="tpl-task-{{ task.pk }}">{{ task.title }}</button>
             <p class="row-meta">
-              <span class="gate-pill">G{{ task.gate.order }}</span>
+              <span class="gate-pill" title="Gate: G{{ task.gate.order }} {{ task.gate.name|gate_title }}">G{{ task.gate.order }} {{ task.gate.name|gate_title }}</span>
+              <span class="gate-pill" title="Project: {{ task.project.name }}">{{ task.project.name }}</span>
               <span>{{ task.get_status_display }}</span>
+              {% if task.claimed_by %}<span>claimed by @{{ task.claimed_by.username }}</span>{% endif %}
+              <span>from @{{ task.created_by.username|default:"admin" }}</span>
               {% if task.is_blocked %}<span class="flag flag-danger">Blocked</span>{% endif %}
             </p>
           </div>

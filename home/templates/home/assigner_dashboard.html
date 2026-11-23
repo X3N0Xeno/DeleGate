@@ -83,8 +83,11 @@
             <div class="row-main">
               <button type="button" class="row-title{% if task.status == 'COMPLETED' %} is-done{% endif %}" data-open-drawer="tpl-task-{{ task.pk }}">{{ task.title }}</button>
               <p class="row-meta">
+                <span class="gate-pill" title="Gate: G{{ task.gate.order }} {{ task.gate.name|gate_title }}">G{{ task.gate.order }} {{ task.gate.name|gate_title }}</span>
+                <span class="gate-pill" title="Project: {{ task.project.name }}">{{ task.project.name }}</span>
                 <span>{{ task.get_status_display }}</span>
                 {% if task.claimed_by %}<span>Mined by @{{ task.claimed_by.username }}</span>{% else %}<span>In the open pool</span>{% endif %}
+                <span>from @{{ task.created_by.username|default:"admin" }}</span>
                 {% if task.is_blocked %}<span class="flag flag-danger">Blocked</span>{% endif %}
                 {% if task.is_multiclaimable %}<span class="flag">Multi-claim</span>{% endif %}
                 {% if task.dissolved_count %}<span class="flag flag-danger">Returned to pool {{ task.dissolved_count }}x</span>{% endif %}
