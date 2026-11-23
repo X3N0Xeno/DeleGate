@@ -58,7 +58,7 @@
   ];
 
   var PREVIEW_HOUR = { dawn: 6.5, day: 12, golden: 18, night: 23 };
-  var PHASE_LABEL = { dawn: 'Dawn', day: 'Solar day', golden: 'Golden hour', night: 'Night' };
+  var PHASE_LABEL = { dawn: 'Dawn', day: 'Solar day', golden: 'Golden hour', night: 'Bio-Night' };
   var THEME_NAMES = Object.keys(PALETTES);
   var MODES = ['auto', 'dawn', 'day', 'golden', 'night'];
   var DARK_TEXT = '#0A1410';

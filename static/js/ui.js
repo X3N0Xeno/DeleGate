@@ -278,6 +278,23 @@
       store.sset('dg-reopen', drawer.getAttribute('data-tpl'));
     }
 
+    // Optimistic UI feedback for mining and gate pass actions
+    var submitBtn = $('button[type="submit"]', form);
+    if (submitBtn) {
+      var btnText = submitBtn.textContent.trim();
+      if (btnText === 'Mine!') {
+        submitBtn.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:4px;animation:pulseGlow 0.8s infinite;"></span> Mining...';
+        var row = form.closest('.row');
+        if (row) {
+          row.style.transition = 'all 0.3s ease';
+          row.style.background = 'color-mix(in srgb, var(--accent) 12%, var(--surface))';
+          row.style.borderColor = 'var(--accent)';
+        }
+      } else if (btnText.indexOf('Pass Gate') !== -1 || btnText.indexOf('Approve') !== -1) {
+        submitBtn.textContent = 'Passing Gate...';
+      }
+    }
+
     // One click, one action: stops a double-click mining or approving twice
     setTimeout(function () {
       $$('button[type="submit"]', form).forEach(function (b) {
