@@ -36,6 +36,24 @@
   {% include 'home/partials/_work_views.html' %}
 
   {% if current_view == 'gates' %}
+  <div class="active-miners-strip" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0 16px 0; padding: 10px 16px; background: color-mix(in srgb, var(--surface) 80%, transparent); border: 1px solid var(--line); border-radius: 12px; backdrop-filter: blur(10px);">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="pulse-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);"></span>
+      <span style="font-weight: 600; font-size: 0.85rem; color: var(--ink);">Active Miners <small class="mono faint" style="font-size: 0.75rem;">(SQL Subquery)</small>:</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+      {% if active_miners %}
+        {% for miner in active_miners %}
+          <span class="gate-pill" style="font-size: 0.8rem; background: color-mix(in srgb, var(--accent) 15%, transparent); border-color: var(--accent); color: var(--accent);">
+            @{{ miner.username }}
+          </span>
+        {% endfor %}
+      {% else %}
+        <span class="mono faint" style="font-size: 0.8rem;">No miners actively holding tasks</span>
+      {% endif %}
+    </div>
+  </div>
+
   {% if user_has_active_task %}
   <p class="note note-block">
     <strong>Finish what you've started first.</strong>
@@ -49,7 +67,10 @@
     <section class="pane pane-main" aria-labelledby="pool-title">
       <div class="pane-head">
         <h2 class="pane-title" id="pool-title">Open to mine</h2>
-        <span class="pane-aux mono">{{ open_pool_tasks|length }} ready</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="flag" style="font-size: 0.75rem;" title="Filtered via SQL Subquery: WHERE gate_id IN (SELECT id FROM home_stagegate WHERE is_unlocked=True)">SQL Subquery Unlocked</span>
+          <span class="pane-aux mono">{{ open_pool_tasks|length }} ready</span>
+        </div>
       </div>
 
       {% if open_pool_tasks %}

@@ -4,7 +4,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
+from django.contrib.auth.models import User
 from django.db import transaction, models
+from django.db.models import Subquery, OuterRef
 from django.utils import timezone
 
 from .models import Project, StageGate, DelegationTask, TaskComment, TaskLink, Sprint
@@ -447,10 +449,24 @@ def claimant_dashboard(request):
     ).count()
     user_has_active_task = user_active_count > 0
 
-    # Live open tasks in unlocked gates (status=OPEN and unclaimed; never COMPLETED)
+    # SQL Subquery 1: StageGate IDs that are currently unlocked
+    unlocked_gate_subquery = StageGate.objects.filter(
+        project=project,
+        is_unlocked=True
+    ).values('id')
+
+    # SQL Subquery 2: Active miners (users who have claimed tasks in progress or review)
+    active_miner_subquery = DelegationTask.objects.filter(
+        project=project,
+        claimed_by__isnull=False,
+        status__in=['CLAIMED', 'IN_PROGRESS', 'IN_REVIEW']
+    ).values('claimed_by_id')
+    active_miners = list(User.objects.filter(id__in=Subquery(active_miner_subquery)).distinct())
+
+    # Live open tasks in unlocked gates (filtered using SQL Subquery on unlocked gates)
     open_pool_tasks = list(DelegationTask.objects.filter(
         project=project,
-        gate__is_unlocked=True,
+        gate_id__in=Subquery(unlocked_gate_subquery),
         status='OPEN',
         claimed_by__isnull=True,
     ).select_related('gate', 'project', 'created_by', 'claimed_by').prefetch_related('links').order_by('-priority', 'created_at'))
@@ -521,6 +537,7 @@ def claimant_dashboard(request):
         'my_tabs_list': my_tabs_list,
         'user_has_active_task': user_has_active_task,
         'user_active_count': user_active_count,
+        'active_miners': active_miners,
         'kpi': {
             'open_to_mine': kpi_open,
             'my_mined': kpi_my_active,
@@ -633,6 +650,14 @@ def assigner_dashboard(request):
     elif status_filter == 'completed':
         filtered_tasks = [t for t in filtered_tasks if t.status == 'COMPLETED']
 
+    # SQL Subquery: Active miners (users who have claimed tasks in progress or review)
+    active_miner_subquery = DelegationTask.objects.filter(
+        project=project,
+        claimed_by__isnull=False,
+        status__in=['CLAIMED', 'IN_PROGRESS', 'IN_REVIEW']
+    ).values('claimed_by_id')
+    active_miners = list(User.objects.filter(id__in=Subquery(active_miner_subquery)).distinct())
+
     filter_tabs = [
         {'key': 'all', 'label': 'All Tasks', 'count': counts['all'], 'active': (status_filter == 'all')},
         {'key': 'open', 'label': 'Open in Pool', 'count': counts['open'], 'active': (status_filter == 'open')},
@@ -652,6 +677,7 @@ def assigner_dashboard(request):
         'all_tasks': all_tasks,
         'status_filter': status_filter,
         'gate_filter': gate_filter,
+        'active_miners': active_miners,
         'filter_tabs': filter_tabs,
         'priority_choices': DelegationTask.PRIORITY_CHOICES,
         'effort_choices': [1, 2, 3, 5, 8],
